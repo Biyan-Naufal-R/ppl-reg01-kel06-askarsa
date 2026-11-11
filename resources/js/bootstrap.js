@@ -1,4 +1,1 @@
-import axios from 'axios';
-window.axios = axios;
-
-window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+// Tambahkan konfigurasi Axios/CSRF atau Echo di sini bila dibutuhkan.
