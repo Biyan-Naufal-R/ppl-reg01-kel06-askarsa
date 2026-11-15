@@ -1,59 +1,44 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# ASKARSA — Laravel 12 + Blade + Tailwind CSS
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Starter implementasi desain PDF ASKARSA (35 frame). Paket ini menyediakan fondasi UI, routing, layout publik/panel, katalog, autentikasi visual, dashboard pengguna, dan dashboard admin. Data contoh masih statis; hubungkan ke Eloquent/database sebelum produksi.
 
-## About Laravel
+## Kebutuhan
+PHP 8.2+, Composer 2, Node.js 20+, MySQL 8 (atau SQLite).
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Instalasi
+```bash
+composer create-project laravel/laravel askarsa "^12.0"
+cd askarsa
+# Salin/merge isi paket ini ke root project
+npm install
+npm install tailwindcss @tailwindcss/vite
+cp .env.example .env
+php artisan key:generate
+# Atur DB_* pada .env
+php artisan migrate
+npm run build
+php artisan serve
+```
+Development: jalankan `php artisan serve` dan `npm run dev` pada dua terminal.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Akun demo
+Belum ada autentikasi backend aktif. Pasang Laravel Breeze/Starter Kit untuk autentikasi produksi, lalu hubungkan form login/register ke guard Laravel.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Struktur
+- `routes/web.php`: route publik, pengguna, dan admin.
+- `app/Http/Controllers`: controller halaman dan aksi contoh.
+- `resources/views/layouts`: layout utama.
+- `resources/views/components`: navbar, footer, sidebar, kartu.
+- `resources/views/pages`: halaman publik/katalog.
+- `resources/views/dashboard`: halaman aktivitas pengguna.
+- `resources/views/admin`: halaman administrator.
+- `resources/css/app.css`: token warna dan komponen Tailwind.
 
-## Learning Laravel
+## Pemetaan desain
+35 frame dikelompokkan menjadi route: beranda; auth; katalog jasa/freelance/full-time; detail jasa/lowongan; profil dan form jasa; pemesanan; pembuatan lowongan dan lamaran; daftar aktivitas pengguna; dashboard/moderasi/admin/master data. Beberapa frame merupakan state alternatif dari halaman yang sama (empty state, riwayat, status pesanan, tab master data).
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
-
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Catatan keamanan & ruang lingkup
+- Data contoh hanya untuk preview layout.
+- Tambahkan middleware `auth`, role/permission, validasi, pagination, audit log, dan policy sebelum deployment.
+- CV dan bukti laporan harus disimpan pada disk privat dan hanya diakses melalui controller berotorisasi.
+- Sesuai fondasi desain: tidak ada pembayaran online, e-wallet, chat internal, GPS, verifikasi resmi, atau aplikasi native.
