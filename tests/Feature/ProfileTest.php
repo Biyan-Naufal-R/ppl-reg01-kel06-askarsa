@@ -29,13 +29,18 @@ class ProfileTest extends TestCase
             ->assertSee('Profil Saya')
             ->assertSee('Ayu Pratama')
             ->assertSee('Sokaraja')
+            ->assertSee('Ubah password')
+            ->assertSee(route('dashboard.edit-profile').'#password', false)
             ->assertDontSee('name="password"', false);
 
         $this->get(route('dashboard.edit-profile'))
             ->assertOk()
             ->assertSee('Edit profil / akun')
             ->assertSee('Simpan perubahan')
-            ->assertSee('name="current_password"', false);
+            ->assertSee('name="current_password"', false)
+            ->assertSee('data-password-toggle="current_password"', false)
+            ->assertSee('data-password-toggle="password"', false)
+            ->assertSee('data-password-toggle="password_confirmation"', false);
     }
 
     public function test_user_can_update_profile_without_changing_password(): void

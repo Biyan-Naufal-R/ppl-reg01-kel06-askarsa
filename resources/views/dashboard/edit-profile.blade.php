@@ -18,7 +18,7 @@
             @csrf
             @method('PUT')
 
-            <section class="card space-y-5">
+            <section id="password" class="card space-y-5">
                 <div>
                     <h2 class="text-lg font-bold">Informasi profil</h2>
                     <p class="mt-1 text-sm text-slate-500">Informasi ini digunakan pada akun ASKARSA Anda.</p>
@@ -56,18 +56,21 @@
                 <div>
                     <label class="field-label" for="current_password">Password saat ini</label>
                     <input class="field" id="current_password" name="current_password" type="password" autocomplete="current-password">
+                    <button class="mt-2 text-sm font-semibold text-askarsa hover:underline" type="button" data-password-toggle="current_password" data-show-label="Tampilkan" data-hide-label="Sembunyikan" aria-label="Tampilkan password saat ini" aria-pressed="false">Tampilkan</button>
                     @error('current_password')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 <div>
                     <label class="field-label" for="password">Password baru</label>
                     <input class="field" id="password" name="password" type="password" autocomplete="new-password" minlength="8">
+                    <button class="mt-2 text-sm font-semibold text-askarsa hover:underline" type="button" data-password-toggle="password" data-show-label="Tampilkan" data-hide-label="Sembunyikan" aria-label="Tampilkan password baru" aria-pressed="false">Tampilkan</button>
                     @error('password')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 <div>
                     <label class="field-label" for="password_confirmation">Konfirmasi password baru</label>
                     <input class="field" id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" minlength="8">
+                    <button class="mt-2 text-sm font-semibold text-askarsa hover:underline" type="button" data-password-toggle="password_confirmation" data-show-label="Tampilkan" data-hide-label="Sembunyikan" aria-label="Tampilkan konfirmasi password baru" aria-pressed="false">Tampilkan</button>
                 </div>
             </section>
 
