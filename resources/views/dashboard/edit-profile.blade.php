@@ -18,7 +18,7 @@
             @csrf
             @method('PUT')
 
-            <section id="password" class="card space-y-5">
+            <section class="card space-y-5">
                 <div>
                     <h2 class="text-lg font-bold">Informasi profil</h2>
                     <p class="mt-1 text-sm text-slate-500">Informasi ini digunakan pada akun ASKARSA Anda.</p>
@@ -39,15 +39,15 @@
                 <div>
                     <label class="field-label" for="domisili">Domisili / kecamatan</label>
                     <select class="field" id="domisili" name="domisili" required>
-                        @foreach (['Purwokerto Utara', 'Sokaraja', 'Baturaden'] as $domisili)
-                            <option value="{{ $domisili }}" @selected(old('domisili', $user->domisili) === $domisili)>{{ $domisili }}</option>
+                        @foreach (config('domisili.kecamatan') as $kecamatan)
+                            <option value="{{ $kecamatan }}" @selected(old('domisili', $user->domisili) === $kecamatan)>{{ $kecamatan }}</option>
                         @endforeach
                     </select>
                     @error('domisili')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
             </section>
 
-            <section class="card space-y-5">
+            <section id="password-settings" class="card space-y-5">
                 <div>
                     <h2 class="text-lg font-bold">Ubah password</h2>
                     <p class="mt-1 text-sm text-slate-500">Kosongkan jika tidak ingin mengganti password.</p>

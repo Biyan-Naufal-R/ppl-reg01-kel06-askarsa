@@ -22,13 +22,18 @@ class AccountController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $user = $request->user();
-        $validated = $request->validate([
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'domisili' => ['required', 'string', 'max:255'],
-            'current_password' => ['required_with:password', 'current_password'],
+            'domisili' => ['required', 'string', 'max:255', Rule::in(config('domisili.kecamatan'))],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-        ]);
+        ];
+
+        if ($request->filled('password')) {
+            $rules['current_password'] = ['required', 'current_password'];
+        }
+
+        $validated = $request->validate($rules);
 
         $user->name = $validated['name'];
         $user->email = $validated['email'];
@@ -45,7 +50,7 @@ class AccountController extends Controller
         $user->save();
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard.edit-profile')
-            ->with('status', 'Profil dan akun berhasil diperbarui.');
+        return redirect()->route('dashboard.profile')
+            ->with('status', 'Profil berhasil diperbarui.');
     }
 }
