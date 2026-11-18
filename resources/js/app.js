@@ -19,6 +19,18 @@ document.addEventListener('click', e => {
  const toastClose = target.closest('[data-toast-close]');
  if (toastClose) document.getElementById('status-toast')?.remove();
 
+ const passwordToggle = target.closest('[data-password-toggle]');
+ if (passwordToggle) {
+  const passwordInput = document.getElementById(passwordToggle.dataset.passwordToggle);
+  if (passwordInput) {
+   const isVisible = passwordInput.type === 'text';
+   passwordInput.type = isVisible ? 'password' : 'text';
+   passwordToggle.textContent = isVisible ? passwordToggle.dataset.showLabel : passwordToggle.dataset.hideLabel;
+   passwordToggle.setAttribute('aria-label', `${isVisible ? 'Tampilkan' : 'Sembunyikan'} ${passwordToggle.getAttribute('aria-label').replace(/^(Tampilkan|Sembunyikan) /, '')}`);
+   passwordToggle.setAttribute('aria-pressed', String(!isVisible));
+  }
+ }
+
  const modalOpen = target.closest('[data-modal-open]');
  if (modalOpen) document.getElementById(modalOpen.dataset.modalOpen)?.classList.remove('hidden');
 
