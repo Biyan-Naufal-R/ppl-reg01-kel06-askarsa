@@ -1,0 +1,33 @@
+<?php
+
+return [
+    'kecamatan' => [
+        'Ajibarang',
+        'Banyumas',
+        'Baturraden',
+        'Cilongok',
+        'Gumelar',
+        'Jatilawang',
+        'Kalibagor',
+        'Karanglewas',
+        'Kebasen',
+        'Kedungbanteng',
+        'Kembaran',
+        'Kemranjen',
+        'Lumbir',
+        'Patikraja',
+        'Pekuncen',
+        'Purwojati',
+        'Purwokerto Barat',
+        'Purwokerto Selatan',
+        'Purwokerto Timur',
+        'Purwokerto Utara',
+        'Rawalo',
+        'Sokaraja',
+        'Somagede',
+        'Sumbang',
+        'Sumpiuh',
+        'Tambak',
+        'Wangon',
+    ],
+];

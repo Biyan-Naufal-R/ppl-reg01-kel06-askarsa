@@ -52,9 +52,9 @@
                 <div>
                     <label class="field-label" for="domisili">Domisili / kecamatan *</label>
                     <select id="domisili" name="domisili" class="field" required>
-                        <option value="Purwokerto Utara" @selected(old('domisili') === 'Purwokerto Utara')>Purwokerto Utara</option>
-                        <option value="Sokaraja" @selected(old('domisili') === 'Sokaraja')>Sokaraja</option>
-                        <option value="Baturaden" @selected(old('domisili') === 'Baturaden')>Baturaden</option>
+                        @foreach (config('domisili.kecamatan') as $kecamatan)
+                            <option value="{{ $kecamatan }}" @selected(old('domisili') === $kecamatan)>{{ $kecamatan }}</option>
+                        @endforeach
                     </select>
                     @error('domisili')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>

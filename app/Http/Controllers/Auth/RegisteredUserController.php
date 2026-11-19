@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class RegisteredUserController extends Controller
 {
@@ -15,7 +16,7 @@ class RegisteredUserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'domisili' => ['required', 'string', 'max:255'],
+            'domisili' => ['required', 'string', 'max:255', Rule::in(config('domisili.kecamatan'))],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
