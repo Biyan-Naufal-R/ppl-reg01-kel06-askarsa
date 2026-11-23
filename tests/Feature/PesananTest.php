@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Pesanan;
+use App\Models\ProfilJasa;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -97,5 +98,103 @@ class PesananTest extends TestCase
             ->get(route('pesanan.show', $pesanan))
             ->assertOk()
             ->assertSee('Servis AC');
+    }
+
+    public function test_user_dengan_jasa_aktif_tidak_bisa_memesan_jasa_orang_lain(): void
+    {
+        $pemesan = User::factory()->create();
+        ProfilJasa::factory()->create(['user_id' => $pemesan->id]);
+
+        $penyedia = User::factory()->create();
+        ProfilJasa::factory()->create(['user_id' => $penyedia->id, 'tarif' => 50000]);
+
+        $this->actingAs($pemesan)
+            ->from(route('services.show', 'bima-saputra'))
+            ->post(route('pesanan.store'), ['penyedia_id' => $penyedia->id])
+            ->assertRedirect(route('services.show', 'bima-saputra'))
+            ->assertSessionHasErrors('jasa');
+
+        $this->assertDatabaseCount('pesanan', 0);
+    }
+
+    public function test_user_bisa_memesan_setelah_jasanya_dinonaktifkan(): void
+    {
+        $pemesan = User::factory()->create();
+        ProfilJasa::factory()->nonaktif()->create(['user_id' => $pemesan->id]);
+
+        $penyedia = User::factory()->create();
+        ProfilJasa::factory()->create([
+            'user_id' => $penyedia->id,
+            'nama_profil' => 'Jasa Bima',
+            'tarif' => 50000,
+        ]);
+
+        $this->actingAs($pemesan)
+            ->post(route('pesanan.store'), [
+                'penyedia_id' => $penyedia->id,
+                'deskripsi' => 'Tolong antar dokumen',
+            ])
+            ->assertRedirect(route('pesanan.show', Pesanan::first()));
+
+        $pesanan = Pesanan::first();
+        $this->assertSame($pemesan->id, $pesanan->pelanggan_id);
+        $this->assertSame($penyedia->id, $pesanan->penyedia_id);
+        $this->assertSame('Pesan jasa: Jasa Bima', $pesanan->judul);
+        $this->assertSame(50000, $pesanan->harga);
+        $this->assertSame(Pesanan::STATUS_MENUNGGU, $pesanan->status);
+    }
+
+    public function test_tidak_bisa_memesan_jasa_milik_sendiri(): void
+    {
+        $user = User::factory()->create();
+        ProfilJasa::factory()->create(['user_id' => $user->id]);
+
+        $this->actingAs($user)
+            ->post(route('pesanan.store'), ['penyedia_id' => $user->id])
+            ->assertSessionHasErrors('jasa');
+
+        $this->assertDatabaseCount('pesanan', 0);
+    }
+
+    public function test_tidak_bisa_memesan_penyedia_yang_profil_jasanya_nonaktif(): void
+    {
+        $penyedia = User::factory()->create();
+        ProfilJasa::factory()->nonaktif()->create(['user_id' => $penyedia->id]);
+
+        $this->actingAs(User::factory()->create())
+            ->post(route('pesanan.store'), ['penyedia_id' => $penyedia->id])
+            ->assertNotFound();
+
+        $this->assertDatabaseCount('pesanan', 0);
+    }
+
+    public function test_detail_jasa_menampilkan_form_pesan_hanya_untuk_pelanggan_yang_boleh(): void
+    {
+        $penyedia = User::factory()->create([
+            'name' => 'Bima Saputra',
+            'email' => 'bima.saputra@askarsa.test',
+        ]);
+        ProfilJasa::factory()->create(['user_id' => $penyedia->id]);
+
+        $pelanggan = User::factory()->create();
+        $this->actingAs($pelanggan)
+            ->get(route('services.show', 'bima-saputra'))
+            ->assertOk()
+            ->assertSee('name="penyedia_id"', false)
+            ->assertSee('Pesan Jasa');
+
+        $pemilikJasa = User::factory()->create();
+        ProfilJasa::factory()->create(['user_id' => $pemilikJasa->id]);
+        $this->actingAs($pemilikJasa)
+            ->get(route('services.show', 'bima-saputra'))
+            ->assertOk()
+            ->assertSee('Nonaktifkan profil jasa Anda terlebih dahulu')
+            ->assertDontSee('name="penyedia_id"', false);
+
+        $this->actingAs($penyedia)
+            ->get(route('services.show', 'bima-saputra'))
+            ->assertOk()
+            ->assertSee('Ini jasa milik Anda sendiri.')
+            ->assertDontSee('name="penyedia_id"', false);
     }
 }

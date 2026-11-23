@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -46,5 +47,16 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function profilJasa(): HasOne
+    {
+        return $this->hasOne(ProfilJasa::class);
+    }
+
+    /** Apakah akun ini sedang berstatus sebagai penyedia jasa aktif? */
+    public function punyaJasaAktif(): bool
+    {
+        return (bool) $this->profilJasa?->aktif;
     }
 }

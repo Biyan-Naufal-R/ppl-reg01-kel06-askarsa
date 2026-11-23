@@ -3,6 +3,11 @@
 @section('title', 'Edit Profil / Akun — ASKARSA')
 
 @section('content')
+@php
+    $jasa = $user->profilJasa;
+    $jasaAktif = filter_var(old('jasa_aktif', $user->punyaJasaAktif()), FILTER_VALIDATE_BOOLEAN);
+    $kategoriTerpilih = old('kategori', $jasa?->kategori ?? []) ?? [];
+@endphp
 <section class="container-app py-10">
     <p class="text-xs text-slate-400">Beranda / Akun / Edit Profil</p>
 
@@ -14,11 +19,11 @@
             <p class="muted mt-2">Perbarui informasi profil, email, domisili, atau password Anda.</p>
         </div>
 
-        <form class="space-y-6" method="post" action="{{ route('dashboard.profile.update') }}">
+        <form class="space-y-6" id="profile-form" method="post" action="{{ route('dashboard.profile.update') }}">
             @csrf
             @method('PUT')
 
-            <section class="card space-y-5">
+            <section class="card jasa-toggle space-y-5">
                 <div>
                     <h2 class="text-lg font-bold">Informasi profil</h2>
                     <p class="mt-1 text-sm text-slate-500">Informasi ini digunakan pada akun ASKARSA Anda.</p>
@@ -44,6 +49,64 @@
                         @endforeach
                     </select>
                     @error('domisili')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+
+                <div class="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-askarsa-mint/60 p-4">
+                    <div>
+                        <p class="text-sm font-bold text-askarsa-ink">Aktifkan jasa minta tolong</p>
+                        <p class="mt-1 text-xs text-slate-500">Tawarkan bantuan kepada pengguna lain dan atur profil jasa Anda.</p>
+                    </div>
+                    <label class="relative inline-flex shrink-0 cursor-pointer items-center">
+                        <input class="peer sr-only" id="toggle-jasa" name="jasa_aktif" type="checkbox" value="1" @checked($jasaAktif) aria-label="Aktifkan jasa minta tolong">
+                        <span class="h-7 w-12 rounded-full bg-slate-300 transition after:absolute after:left-[3px] after:top-[3px] after:size-[22px] after:rounded-full after:bg-white after:shadow peer-checked:bg-askarsa peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-askarsa/40" aria-hidden="true"></span>
+                    </label>
+                </div>
+
+                <div id="jasa-section" class="rounded-xl border border-slate-200 bg-askarsa-surface/70 p-5">
+                    <h3 class="font-bold text-askarsa-ink">Profil Jasa Minta Tolong</h3>
+                    <p class="mt-1 text-xs text-slate-500">Profil jasa disimpan terpisah dari data akun dan hanya aktif jika Anda mengaktifkannya.</p>
+
+                    <div class="mt-5 grid gap-5 sm:grid-cols-2">
+                        <div>
+                            <label class="field-label" for="nama_profil">Nama Profil Jasa</label>
+                            <input class="field" id="nama_profil" name="nama_profil" type="text" maxlength="255" placeholder="Contoh: Joanna Siap Bantu" value="{{ old('nama_profil', $jasa?->nama_profil) }}">
+                            @error('nama_profil')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label class="field-label" for="tarif">Tarif (Rp)</label>
+                            <div class="relative">
+                                <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">Rp</span>
+                                <input class="field pl-10" id="tarif" name="tarif" type="number" min="0" step="1000" placeholder="25000" value="{{ old('tarif', $jasa?->tarif) }}">
+                            </div>
+                            @error('tarif')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+
+                    <div class="mt-5">
+                        <span class="field-label">Kategori Bantuan</span>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (config('jasa.kategori') as $nilai => $label)
+                                <label class="cursor-pointer">
+                                    <input class="peer sr-only" type="checkbox" name="kategori[]" value="{{ $nilai }}" @checked(in_array($nilai, $kategoriTerpilih))>
+                                    <span class="inline-flex rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-askarsa-ink transition hover:border-askarsa peer-checked:border-askarsa peer-checked:bg-askarsa peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-askarsa/30">{{ $label }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        @error('kategori')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        @error('kategori.*')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        <p class="mt-2 text-xs text-slate-500">Pilih satu atau lebih kategori.</p>
+                    </div>
+
+                    <div class="mt-5">
+                        <label class="field-label" for="deskripsi">Deskripsi</label>
+                        <textarea class="field" id="deskripsi" name="deskripsi" rows="4" maxlength="1000" placeholder="Ceritakan bantuan apa yang bisa Anda berikan…">{{ old('deskripsi', $jasa?->deskripsi) }}</textarea>
+                        @error('deskripsi')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div class="mt-5 flex justify-end">
+                        <button class="btn-primary" type="submit">Simpan</button>
+                    </div>
                 </div>
             </section>
 

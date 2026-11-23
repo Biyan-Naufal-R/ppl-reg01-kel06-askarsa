@@ -33,6 +33,18 @@ class AccountController extends Controller
             $rules['current_password'] = ['required', 'current_password'];
         }
 
+        $jasaAktif = $request->boolean('jasa_aktif');
+
+        if ($jasaAktif) {
+            $rules = array_merge($rules, [
+                'nama_profil' => ['required', 'string', 'max:255'],
+                'tarif' => ['required', 'integer', 'min:0'],
+                'kategori' => ['required', 'array', 'min:1'],
+                'kategori.*' => ['string', Rule::in(array_keys(config('jasa.kategori')))],
+                'deskripsi' => ['nullable', 'string', 'max:1000'],
+            ]);
+        }
+
         $validated = $request->validate($rules);
 
         $user->name = $validated['name'];
@@ -48,6 +60,22 @@ class AccountController extends Controller
         }
 
         $user->save();
+
+        if ($jasaAktif) {
+            $user->profilJasa()->updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'nama_profil' => $validated['nama_profil'],
+                    'tarif' => $validated['tarif'],
+                    'kategori' => $validated['kategori'],
+                    'deskripsi' => $validated['deskripsi'] ?? null,
+                    'aktif' => true,
+                ]
+            );
+        } elseif ($user->profilJasa) {
+            $user->profilJasa->update(['aktif' => false]);
+        }
+
         $request->session()->regenerate();
 
         return redirect()->route('dashboard.profile')

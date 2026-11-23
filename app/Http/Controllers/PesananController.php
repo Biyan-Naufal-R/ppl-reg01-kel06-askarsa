@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pesanan;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -10,6 +11,41 @@ use Illuminate\View\View;
 
 class PesananController extends Controller
 {
+    /** Buat pesanan baru, dengan pembatasan peran penyedia/pelanggan. */
+    public function store(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'penyedia_id' => ['required', 'integer', 'exists:users,id'],
+            'deskripsi' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $pemesan = $request->user();
+        $penyedia = User::findOrFail($data['penyedia_id']);
+        $profil = $penyedia->profilJasa;
+
+        if ((int) $penyedia->id === (int) $pemesan->id) {
+            return back()->withErrors(['jasa' => 'Tidak bisa memesan jasa milik sendiri.']);
+        }
+
+        abort_unless($profil && $profil->aktif, 404, 'Profil jasa ini tidak tersedia.');
+
+        if ($pemesan->punyaJasaAktif()) {
+            return back()->withErrors(['jasa' => 'Nonaktifkan profil jasa Anda terlebih dahulu untuk memesan jasa orang lain.']);
+        }
+
+        $pesanan = Pesanan::create([
+            'pelanggan_id' => $pemesan->id,
+            'penyedia_id' => $penyedia->id,
+            'judul' => 'Pesan jasa: '.$profil->nama_profil,
+            'deskripsi' => $data['deskripsi'] ?? null,
+            'harga' => $profil->tarif,
+            'status' => Pesanan::STATUS_MENUNGGU,
+        ]);
+
+        return redirect()->route('pesanan.show', $pesanan)
+            ->with('sukses', 'Pesanan berhasil dibuat.');
+    }
+
     /** Riwayat pesanan (selesai/dibatalkan) milik user yang login, dengan filter status. */
     public function riwayat(Request $request): View
     {
