@@ -44,7 +44,7 @@
                     <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Password</dt>
                     <dd class="mt-1 flex flex-wrap items-center gap-3">
                         <span class="text-sm text-slate-600">Disimpan aman dan tidak dapat ditampilkan.</span>
-                        <a class="text-sm font-semibold text-askarsa hover:underline" href="{{ route('dashboard.edit-profile') }}#password">Ubah password</a>
+                        <a class="text-sm font-semibold text-askarsa hover:underline" href="{{ route('dashboard.edit-profile') }}#password-settings">Ubah password</a>
                     </dd>
                 </div>
             </dl>

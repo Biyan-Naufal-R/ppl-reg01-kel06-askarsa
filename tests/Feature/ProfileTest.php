@@ -30,7 +30,7 @@ class ProfileTest extends TestCase
             ->assertSee('Ayu Pratama')
             ->assertSee('Sokaraja')
             ->assertSee('Ubah password')
-            ->assertSee(route('dashboard.edit-profile').'#password', false)
+            ->assertSee(route('dashboard.edit-profile').'#password-settings', false)
             ->assertDontSee('name="password"', false);
 
         $this->get(route('dashboard.edit-profile'))
@@ -43,6 +43,17 @@ class ProfileTest extends TestCase
             ->assertSee('data-password-toggle="password_confirmation"', false);
     }
 
+    public function test_edit_profile_lists_all_banyumas_districts(): void
+    {
+        $response = $this->actingAs(User::factory()->create())
+            ->get(route('dashboard.edit-profile'))
+            ->assertOk();
+
+        foreach (config('domisili.kecamatan') as $district) {
+            $response->assertSee('value="'.$district.'"', false);
+        }
+    }
+
     public function test_user_can_update_profile_without_changing_password(): void
     {
         $user = User::factory()->create([
@@ -53,18 +64,22 @@ class ProfileTest extends TestCase
         $oldPassword = $user->password;
 
         $this->actingAs($user)
+            ->followingRedirects()
             ->put(route('dashboard.profile.update'), [
                 'name' => 'Ayu Wibowo',
                 'email' => 'ayu.wibowo@example.com',
-                'domisili' => 'Baturaden',
+                'domisili' => 'Baturraden',
+                'current_password' => 'browser-autofilled-password',
             ])
-            ->assertRedirect(route('dashboard.edit-profile'))
-            ->assertSessionHas('status', 'Profil dan akun berhasil diperbarui.');
+            ->assertOk()
+            ->assertSee('Profil berhasil diperbarui.')
+            ->assertSee('id="status-toast"', false)
+            ->assertSee('Baturraden');
 
         $user->refresh();
         $this->assertSame('Ayu Wibowo', $user->name);
         $this->assertSame('ayu.wibowo@example.com', $user->email);
-        $this->assertSame('Baturaden', $user->domisili);
+        $this->assertSame('Baturraden', $user->domisili);
         $this->assertSame($oldPassword, $user->password);
     }
 
@@ -81,7 +96,7 @@ class ProfileTest extends TestCase
                 'password' => 'new-password',
                 'password_confirmation' => 'new-password',
             ])
-            ->assertRedirect(route('dashboard.edit-profile'));
+            ->assertRedirect(route('dashboard.profile'));
 
         $this->assertTrue(password_verify('new-password', $user->fresh()->password));
     }
@@ -103,5 +118,20 @@ class ProfileTest extends TestCase
             ])
             ->assertRedirect(route('dashboard.edit-profile'))
             ->assertSessionHasErrors(['email', 'current_password']);
+    }
+
+    public function test_profile_update_rejects_a_district_outside_banyumas(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->from(route('dashboard.edit-profile'))
+            ->put(route('dashboard.profile.update'), [
+                'name' => $user->name,
+                'email' => $user->email,
+                'domisili' => 'Cilacap',
+            ])
+            ->assertRedirect(route('dashboard.edit-profile'))
+            ->assertSessionHasErrors('domisili');
     }
 }
