@@ -20,11 +20,17 @@ class ProfilJasaFactory extends Factory
             'kategori' => [fake()->randomElement(array_keys(config('jasa.kategori')))],
             'deskripsi' => fake()->sentence(),
             'aktif' => true,
+            'tersedia' => true,
         ];
     }
 
     public function nonaktif(): static
     {
         return $this->state(fn () => ['aktif' => false]);
+    }
+
+    public function tidakTersedia(): static
+    {
+        return $this->state(fn () => ['tersedia' => false]);
     }
 }

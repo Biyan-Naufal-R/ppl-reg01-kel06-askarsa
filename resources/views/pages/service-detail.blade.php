@@ -8,7 +8,7 @@
 
     <div class="mt-6 grid gap-6 lg:grid-cols-[1fr_300px]">
         <article class="card">
-            <span class="pill">Tersedia</span>
+            <span class="pill">{{ $service['tersedia'] ?? true ? 'Tersedia' : 'Tidak tersedia' }}</span>
             <h1 class="mt-3 text-3xl font-black">{{ $service['name'] }}</h1>
             <p class="muted">{{ $service['district'] }}, Kabupaten Banyumas</p>
             <hr class="my-6">
@@ -41,6 +41,9 @@
                     <button class="btn-primary mt-3 w-full opacity-50" type="button" disabled>Pesan Jasa</button>
                 @elseif (! $penyedia?->profilJasa?->aktif)
                     <p class="mt-6 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">Penyedia jasa ini belum aktif.</p>
+                    <button class="btn-primary mt-3 w-full opacity-50" type="button" disabled>Pesan Jasa</button>
+                @elseif (! $penyedia?->profilJasa?->tersedia)
+                    <p class="mt-6 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Penyedia sedang tidak tersedia. Silakan cek kembali nanti.</p>
                     <button class="btn-primary mt-3 w-full opacity-50" type="button" disabled>Pesan Jasa</button>
                 @else
                     <form class="mt-6 space-y-4" method="POST" action="{{ route('pesanan.store') }}">

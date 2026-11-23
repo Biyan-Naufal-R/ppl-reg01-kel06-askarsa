@@ -42,6 +42,7 @@ class AccountController extends Controller
                 'kategori' => ['required', 'array', 'min:1'],
                 'kategori.*' => ['string', Rule::in(array_keys(config('jasa.kategori')))],
                 'deskripsi' => ['nullable', 'string', 'max:1000'],
+                'tersedia' => ['required', 'boolean'],
             ]);
         }
 
@@ -70,6 +71,7 @@ class AccountController extends Controller
                     'kategori' => $validated['kategori'],
                     'deskripsi' => $validated['deskripsi'] ?? null,
                     'aktif' => true,
+                    'tersedia' => $request->boolean('tersedia', true),
                 ]
             );
         } elseif ($user->profilJasa) {

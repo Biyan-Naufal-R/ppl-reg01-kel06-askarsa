@@ -11,7 +11,7 @@ class PageController extends Controller
     /** Katalog jasa minta tolong diambil dari profil jasa yang sedang aktif. */
     private function serviceData(): array
     {
-        $profilJasa = ProfilJasa::aktif()->with('user')->latest()->get();
+        $profilJasa = ProfilJasa::tampilDiKatalog()->with('user')->latest()->get();
 
         $slugCounts = [];
         foreach ($profilJasa as $profil) {
@@ -43,6 +43,7 @@ class PageController extends Controller
                 'price' => 'Rp'.number_format($profil->tarif, 0, ',', '.'),
                 'penyedia_id' => $profil->user_id,
                 'penyedia_email' => $user->email,
+                'tersedia' => (bool) $profil->tersedia,
             ];
         })->values()->all();
     }
@@ -54,7 +55,35 @@ class PageController extends Controller
     ['slug'=>'barista','company'=>'Kedai Kopi Lereng','title'=>'Barista','type'=>'Full-Time','mode'=>'On-site','location'=>'Baturaden, Banyumas','salary'=>'Rp2.300.000–2.800.000 / bulan']];}
     public function home(){return view('pages.home',['services'=>$this->serviceData(),'jobs'=>$this->jobsData()]);}
     public function services(){return view('pages.services',['services'=>$this->serviceData()]);}
-    public function service($slug){$service=collect($this->serviceData())->firstWhere('slug',$slug);abort_unless($service,404);$penyedia=User::find($service['penyedia_id']);return view('pages.service-detail',compact('service','penyedia'));}
+    public function service($slug){
+        $service=collect($this->serviceData())->firstWhere('slug',$slug);
+
+        if (!$service) {
+            $profil = ProfilJasa::with('user')->where('aktif', true)->get()->first(function (ProfilJasa $profil) use ($slug) {
+                $base = Str::slug($profil->user?->name ?? 'penyedia');
+                $sameBaseCount = ProfilJasa::where('aktif', true)->whereHas('user', fn ($q) => $q->where('name', $profil->user?->name))->count();
+                $candidate = $sameBaseCount > 1 ? $base.'-'.$profil->user_id : $base;
+                return $candidate === $slug;
+            });
+            abort_unless($profil, 404);
+            $user = $profil->user;
+            $service = [
+                'slug' => $slug,
+                'initials' => collect(preg_split('/\s+/', trim($user->name ?? 'Penyedia')))->map(fn (string $kata) => Str::upper(Str::substr($kata, 0, 1)))->take(2)->implode(''),
+                'name' => $profil->nama_profil,
+                'district' => $user->domisili ?? '-',
+                'category' => collect($profil->kategori ?? [])->map(fn (string $nilai) => config('jasa.kategori.'.$nilai, $nilai))->implode(', '),
+                'description' => $profil->deskripsi ?? '',
+                'price' => 'Rp'.number_format($profil->tarif, 0, ',', '.'),
+                'penyedia_id' => $profil->user_id,
+                'penyedia_email' => $user->email,
+                'tersedia' => (bool) $profil->tersedia,
+            ];
+        }
+
+        $penyedia=User::find($service['penyedia_id']);
+        return view('pages.service-detail',compact('service','penyedia'));
+    }
     public function jobs(Request $request,$type='all'){ $jobs=collect($this->jobsData())->when($type!=='all',fn($q)=>$q->where('type',$type==='freelance'?'Freelance':'Full-Time'))->values()->all();return view('pages.jobs',['jobs'=>$jobs,'type'=>$type]);}
     public function job($slug){$job=collect($this->jobsData())->firstWhere('slug',$slug);abort_unless($job,404);return view('pages.job-detail',compact('job'));}
     public function auth($mode){return view('auth.form',compact('mode'));}

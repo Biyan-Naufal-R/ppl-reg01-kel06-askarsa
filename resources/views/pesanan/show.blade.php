@@ -23,6 +23,27 @@
         @endif
     </div>
 
+    @if ($bisaTerima)
+        <form method="POST" action="{{ route('pesanan.terima', $pesanan) }}" class="card" style="display:inline-block;margin-right:8px;">
+            @csrf
+            <button type="submit">Terima Pesanan</button>
+        </form>
+    @endif
+
+    @if ($bisaTolak)
+        <form method="POST" action="{{ route('pesanan.tolak', $pesanan) }}" class="card" style="display:inline-block;margin-right:8px;">
+            @csrf
+            <button type="submit">Tolak Pesanan</button>
+        </form>
+    @endif
+
+    @if ($bisaBatalkan)
+        <form method="POST" action="{{ route('pesanan.batalkan', $pesanan) }}" class="card" style="display:inline-block;">
+            @csrf
+            <button type="submit">Batalkan Pesanan</button>
+        </form>
+    @endif
+
     @if ($bisaSelesaikan)
         <form method="POST" action="{{ route('pesanan.selesaikan', $pesanan) }}" class="card">
             @csrf

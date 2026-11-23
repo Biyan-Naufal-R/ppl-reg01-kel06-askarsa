@@ -150,7 +150,8 @@ class ProfileTest extends TestCase
         $this->actingAs($user)
             ->get(route('dashboard.edit-profile'))
             ->assertOk()
-            ->assertSee('Aktifkan jasa minta tolong')
+            ->assertSee('Status profil jasa')
+            ->assertSee('Ketersediaan')
             ->assertSee('id="toggle-jasa"', false)
             ->assertSee('id="jasa-section"', false)
             ->assertSee('value="Joanna Siap Bantu"', false)
@@ -173,6 +174,7 @@ class ProfileTest extends TestCase
                 'tarif' => 30000,
                 'kategori' => ['temani', 'titip-beli'],
                 'deskripsi' => 'Bantu belanja',
+                'tersedia' => 1,
             ])
             ->assertRedirect(route('dashboard.profile'));
 
@@ -183,6 +185,7 @@ class ProfileTest extends TestCase
         $this->assertSame(30000, $profil->tarif);
         $this->assertSame(['temani', 'titip-beli'], $profil->kategori);
         $this->assertSame('Bantu belanja', $profil->deskripsi);
+        $this->assertTrue($profil->tersedia);
         $this->assertDatabaseCount('profil_jasa', 1);
     }
 
@@ -198,7 +201,7 @@ class ProfileTest extends TestCase
                 'domisili' => 'Sokaraja',
                 'jasa_aktif' => 1,
             ])
-            ->assertSessionHasErrors(['nama_profil', 'tarif', 'kategori']);
+            ->assertSessionHasErrors(['nama_profil', 'tarif', 'kategori', 'tersedia']);
 
         $this->assertDatabaseCount('profil_jasa', 0);
     }
@@ -217,6 +220,7 @@ class ProfileTest extends TestCase
                 'nama_profil' => 'Ayu Siap Bantu',
                 'tarif' => 30000,
                 'kategori' => ['kategori-tidak-ada'],
+                'tersedia' => 1,
             ])
             ->assertSessionHasErrors('kategori.0');
     }
@@ -292,6 +296,7 @@ class ProfileTest extends TestCase
                 'tarif' => 25000,
                 'kategori' => ['temani', 'titip-beli'],
                 'deskripsi' => 'Bisa bantu urusan harian.',
+                'tersedia' => 1,
             ])
             ->assertRedirect(route('dashboard.profile'));
 
@@ -332,6 +337,36 @@ class ProfileTest extends TestCase
         $this->get(route('services.show', $slug))->assertNotFound();
     }
 
+    public function test_user_dapat_mengatur_ketersediaan_profil_jasa(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user)->put(route('dashboard.profile.update'), [
+            'name' => $user->name,
+            'email' => $user->email,
+            'domisili' => 'Sokaraja',
+            'jasa_aktif' => 1,
+            'nama_profil' => 'Ayu Siap Bantu',
+            'tarif' => 30000,
+            'kategori' => ['temani'],
+            'tersedia' => 0,
+        ])->assertRedirect(route('dashboard.profile'));
+
+        $this->assertFalse($user->fresh()->profilJasa->tersedia);
+
+        $this->actingAs($user)->put(route('dashboard.profile.update'), [
+            'name' => $user->name,
+            'email' => $user->email,
+            'domisili' => 'Sokaraja',
+            'jasa_aktif' => 1,
+            'nama_profil' => 'Ayu Siap Bantu',
+            'tarif' => 30000,
+            'kategori' => ['temani'],
+            'tersedia' => 1,
+        ])->assertRedirect(route('dashboard.profile'));
+
+        $this->assertTrue($user->fresh()->profilJasa->tersedia);
+    }
+
     public function test_nonaktifkan_jasa_menyimpan_flag_false_tanpa_menghapus_data(): void
     {
         $user = User::factory()->create();
@@ -340,6 +375,7 @@ class ProfileTest extends TestCase
             'nama_profil' => 'Joanna Siap Bantu',
             'tarif' => 25000,
             'kategori' => ['temani'],
+            'tersedia' => false,
         ]);
 
         $this->actingAs($user)
@@ -352,6 +388,7 @@ class ProfileTest extends TestCase
 
         $profil = $user->fresh()->profilJasa;
         $this->assertFalse($profil->aktif);
+        $this->assertFalse($profil->tersedia);
         $this->assertSame('Joanna Siap Bantu', $profil->nama_profil);
         $this->assertDatabaseCount('profil_jasa', 1);
     }

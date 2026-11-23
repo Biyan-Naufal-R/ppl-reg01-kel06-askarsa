@@ -168,6 +168,73 @@ class PesananTest extends TestCase
         $this->assertDatabaseCount('pesanan', 0);
     }
 
+    public function test_tidak_bisa_memesan_penyedia_yang_tidak_tersedia(): void
+    {
+        $penyedia = User::factory()->create();
+        ProfilJasa::factory()->tidakTersedia()->create(['user_id' => $penyedia->id]);
+
+        $this->actingAs(User::factory()->create())
+            ->post(route('pesanan.store'), ['penyedia_id' => $penyedia->id])
+            ->assertNotFound();
+
+        $this->assertDatabaseCount('pesanan', 0);
+    }
+
+    public function test_terima_pesanan_membuat_diproses_dan_profil_tidak_tersedia(): void
+    {
+        $pesanan = Pesanan::factory()->create(['status' => Pesanan::STATUS_MENUNGGU]);
+        ProfilJasa::factory()->create(['user_id' => $pesanan->penyedia_id, 'tersedia' => true]);
+
+        $this->actingAs($pesanan->penyedia)
+            ->post(route('pesanan.terima', $pesanan))
+            ->assertRedirect();
+
+        $this->assertSame(Pesanan::STATUS_DIPROSES, $pesanan->fresh()->status);
+        $this->assertFalse($pesanan->penyedia->fresh()->profilJasa->tersedia);
+    }
+
+    public function test_selesai_mengembalikan_ketersediaan_otomatis(): void
+    {
+        $pesanan = Pesanan::factory()->diproses()->create();
+        ProfilJasa::factory()->create(['user_id' => $pesanan->penyedia_id, 'tersedia' => false]);
+
+        $this->actingAs($pesanan->penyedia)
+            ->post(route('pesanan.selesaikan', $pesanan), ['catatan_penyelesaian' => 'done'])
+            ->assertRedirect(route('pesanan.show', $pesanan));
+
+        $this->assertSame(Pesanan::STATUS_SELESAI, $pesanan->fresh()->status);
+        $this->assertTrue($pesanan->penyedia->fresh()->profilJasa->tersedia);
+    }
+
+    public function test_pelanggan_bisa_batalkan_hanya_saat_menunggu(): void
+    {
+        $pesanan = Pesanan::factory()->create(['status' => Pesanan::STATUS_MENUNGGU]);
+        $this->actingAs($pesanan->pelanggan)
+            ->post(route('pesanan.batalkan', $pesanan))
+            ->assertRedirect();
+        $this->assertSame(Pesanan::STATUS_DIBATALKAN, $pesanan->fresh()->status);
+
+        $diproses = Pesanan::factory()->diproses()->create();
+        $this->actingAs($diproses->pelanggan)
+            ->post(route('pesanan.batalkan', $diproses))
+            ->assertSessionHasErrors('status');
+        $this->assertSame(Pesanan::STATUS_DIPROSES, $diproses->fresh()->status);
+    }
+
+    public function test_penyedia_bisa_tolak_dan_tidak_bisa_batalkan(): void
+    {
+        $pesanan = Pesanan::factory()->create(['status' => Pesanan::STATUS_MENUNGGU]);
+        $this->actingAs($pesanan->penyedia)
+            ->post(route('pesanan.tolak', $pesanan))
+            ->assertRedirect();
+        $this->assertSame(Pesanan::STATUS_DIBATALKAN, $pesanan->fresh()->status);
+
+        $lain = Pesanan::factory()->create(['status' => Pesanan::STATUS_MENUNGGU]);
+        $this->actingAs($lain->penyedia)
+            ->post(route('pesanan.batalkan', $lain))
+            ->assertForbidden();
+    }
+
     public function test_detail_jasa_menampilkan_form_pesan_hanya_untuk_pelanggan_yang_boleh(): void
     {
         $penyedia = User::factory()->create([

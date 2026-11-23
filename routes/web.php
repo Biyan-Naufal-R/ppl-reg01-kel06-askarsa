@@ -12,6 +12,9 @@ Route::middleware('auth')->prefix('pesanan')->name('pesanan.')->group(function (
     Route::post('/', [PesananController::class, 'store'])->name('store');
     Route::get('/riwayat', [PesananController::class, 'riwayat'])->name('riwayat');
     Route::get('/{pesanan}', [PesananController::class, 'show'])->name('show');
+    Route::post('/{pesanan}/terima', [PesananController::class, 'terima'])->name('terima');
+    Route::post('/{pesanan}/tolak', [PesananController::class, 'tolak'])->name('tolak');
+    Route::post('/{pesanan}/batalkan', [PesananController::class, 'batalkan'])->name('batalkan');
     Route::post('/{pesanan}/selesaikan', [PesananController::class, 'selesaikan'])->name('selesaikan');
 });
 

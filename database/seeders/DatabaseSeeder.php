@@ -87,6 +87,7 @@ class DatabaseSeeder extends Seeder
                     'kategori' => $data['kategori'],
                     'deskripsi' => $data['deskripsi'],
                     'aktif' => true,
+                    'tersedia' => true,
                 ]
             );
         }

@@ -27,7 +27,7 @@ class PesananController extends Controller
             return back()->withErrors(['jasa' => 'Tidak bisa memesan jasa milik sendiri.']);
         }
 
-        abort_unless($profil && $profil->aktif, 404, 'Profil jasa ini tidak tersedia.');
+        abort_unless($profil && $profil->aktif && $profil->tersedia, 404, 'Profil jasa ini tidak tersedia.');
 
         if ($pemesan->punyaJasaAktif()) {
             return back()->withErrors(['jasa' => 'Nonaktifkan profil jasa Anda terlebih dahulu untuk memesan jasa orang lain.']);
@@ -73,12 +73,68 @@ class PesananController extends Controller
         abort_unless($pesanan->dimilikiOleh($request->user()), 403);
 
         $pesanan->load(['pelanggan', 'penyedia']);
+        $userId = $request->user()->id;
 
         return view('pesanan.show', [
             'pesanan' => $pesanan,
-            'bisaSelesaikan' => (int) $pesanan->penyedia_id === $request->user()->id
+            'bisaSelesaikan' => (int) $pesanan->penyedia_id === $userId
                 && $pesanan->bisaDiselesaikan(),
+            'bisaTerima' => (int) $pesanan->penyedia_id === $userId
+                && $pesanan->status === Pesanan::STATUS_MENUNGGU,
+            'bisaTolak' => (int) $pesanan->penyedia_id === $userId
+                && $pesanan->status === Pesanan::STATUS_MENUNGGU,
+            'bisaBatalkan' => (int) $pesanan->pelanggan_id === $userId
+                && $pesanan->status === Pesanan::STATUS_MENUNGGU,
         ]);
+    }
+
+    /** Penyedia menerima pesanan menunggu, pesanan diproses dan profil jadi tidak tersedia. */
+    public function terima(Request $request, Pesanan $pesanan): RedirectResponse
+    {
+        abort_unless((int) $pesanan->penyedia_id === $request->user()->id, 403);
+
+        if ($pesanan->status !== Pesanan::STATUS_MENUNGGU) {
+            return back()->withErrors(['status' => 'Hanya pesanan berstatus "menunggu" yang bisa diterima.']);
+        }
+
+        $pesanan->update(['status' => Pesanan::STATUS_DIPROSES]);
+        $request->user()->profilJasa?->update(['tersedia' => false]);
+
+        return back()->with('sukses', 'Pesanan diterima dan sedang diproses. Profil jasa Anda sementara tidak tersedia.');
+    }
+
+    /** Penyedia menolak pesanan menunggu. */
+    public function tolak(Request $request, Pesanan $pesanan): RedirectResponse
+    {
+        abort_unless((int) $pesanan->penyedia_id === $request->user()->id, 403);
+
+        if ($pesanan->status !== Pesanan::STATUS_MENUNGGU) {
+            return back()->withErrors(['status' => 'Hanya pesanan berstatus "menunggu" yang bisa ditolak.']);
+        }
+
+        $pesanan->update([
+            'status' => Pesanan::STATUS_DIBATALKAN,
+            'catatan_penyelesaian' => 'Ditolak oleh penyedia.',
+        ]);
+
+        return back()->with('sukses', 'Pesanan ditolak.');
+    }
+
+    /** Pelanggan membatalkan pesanan yang belum diterima penyedia. */
+    public function batalkan(Request $request, Pesanan $pesanan): RedirectResponse
+    {
+        abort_unless((int) $pesanan->pelanggan_id === $request->user()->id, 403);
+
+        if ($pesanan->status !== Pesanan::STATUS_MENUNGGU) {
+            return back()->withErrors(['status' => 'Pesanan yang sudah diterima/diproses tidak bisa dibatalkan.']);
+        }
+
+        $pesanan->update([
+            'status' => Pesanan::STATUS_DIBATALKAN,
+            'catatan_penyelesaian' => 'Dibatalkan oleh pelanggan.',
+        ]);
+
+        return back()->with('sukses', 'Pesanan dibatalkan.');
     }
 
     /** Penyedia menandai pesanan berstatus "diproses" menjadi "selesai". */
@@ -101,6 +157,13 @@ class PesananController extends Controller
             'catatan_penyelesaian' => $data['catatan_penyelesaian'] ?? null,
             'selesai_pada' => now(),
         ]);
+
+        $masihAdaProses = Pesanan::where('penyedia_id', $request->user()->id)
+            ->where('status', Pesanan::STATUS_DIPROSES)
+            ->exists();
+        if (! $masihAdaProses) {
+            $request->user()->profilJasa?->update(['tersedia' => true]);
+        }
 
         return redirect()
             ->route('pesanan.show', $pesanan)

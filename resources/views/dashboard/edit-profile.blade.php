@@ -7,6 +7,7 @@
     $jasa = $user->profilJasa;
     $jasaAktif = filter_var(old('jasa_aktif', $user->punyaJasaAktif()), FILTER_VALIDATE_BOOLEAN);
     $kategoriTerpilih = old('kategori', $jasa?->kategori ?? []) ?? [];
+    $jasaTersedia = filter_var(old('tersedia', $jasa?->tersedia ?? true), FILTER_VALIDATE_BOOLEAN);
 @endphp
 <section class="container-app py-10">
     <p class="text-xs text-slate-400">Beranda / Akun / Edit Profil</p>
@@ -53,18 +54,35 @@
 
                 <div class="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-askarsa-mint/60 p-4">
                     <div>
-                        <p class="text-sm font-bold text-askarsa-ink">Aktifkan jasa minta tolong</p>
-                        <p class="mt-1 text-xs text-slate-500">Tawarkan bantuan kepada pengguna lain dan atur profil jasa Anda.</p>
+                        <p class="text-sm font-bold text-askarsa-ink">Status profil jasa</p>
+                        <p class="mt-1 text-xs text-slate-500">Aktifkan jika Anda ingin menyalakan akun jasa minta tolong. Nonaktifkan untuk mematikannya.</p>
                     </div>
-                    <label class="relative inline-flex shrink-0 cursor-pointer items-center">
+                    <label class="relative inline-flex shrink-0 cursor-pointer items-center gap-3">
+                        <span class="text-xs font-semibold text-slate-500">{{ $jasaAktif ? 'Aktif' : 'Nonaktif' }}</span>
                         <input class="peer sr-only" id="toggle-jasa" name="jasa_aktif" type="checkbox" value="1" @checked($jasaAktif) aria-label="Aktifkan jasa minta tolong">
-                        <span class="h-7 w-12 rounded-full bg-slate-300 transition after:absolute after:left-[3px] after:top-[3px] after:size-[22px] after:rounded-full after:bg-white after:shadow peer-checked:bg-askarsa peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-askarsa/40" aria-hidden="true"></span>
+                        <span class="relative h-7 w-12 rounded-full bg-slate-300 transition after:absolute after:left-[3px] after:top-[3px] after:size-[22px] after:rounded-full after:bg-white after:shadow peer-checked:bg-askarsa peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-askarsa/40" aria-hidden="true"></span>
                     </label>
                 </div>
 
                 <div id="jasa-section" class="rounded-xl border border-slate-200 bg-askarsa-surface/70 p-5">
                     <h3 class="font-bold text-askarsa-ink">Profil Jasa Minta Tolong</h3>
-                    <p class="mt-1 text-xs text-slate-500">Profil jasa disimpan terpisah dari data akun dan hanya aktif jika Anda mengaktifkannya.</p>
+                    <p class="mt-1 text-xs text-slate-500">Profil jasa disimpan terpisah dari data akun. Ketersediaan hanya berlaku saat profil jasa aktif.</p>
+
+                    <div class="mt-5">
+                        <span class="field-label">Ketersediaan</span>
+                        <div class="flex flex-wrap gap-3">
+                            <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm">
+                                <input type="radio" name="tersedia" value="1" @checked($jasaTersedia)>
+                                <span>Tersedia</span>
+                            </label>
+                            <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm">
+                                <input type="radio" name="tersedia" value="0" @checked(! $jasaTersedia)>
+                                <span>Tidak tersedia</span>
+                            </label>
+                        </div>
+                        @error('tersedia')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        <p class="mt-2 text-xs text-slate-500">Menerima pesanan membuat profil tidak tersedia selama pekerjaan berlangsung; setelah selesai, profil kembali tersedia otomatis dan Anda tetap dapat mengaturnya kembali.</p>
+                    </div>
 
                     <div class="mt-5 grid gap-5 sm:grid-cols-2">
                         <div>

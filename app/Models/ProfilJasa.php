@@ -21,6 +21,7 @@ class ProfilJasa extends Model
         'kategori',
         'deskripsi',
         'aktif',
+        'tersedia',
     ];
 
     protected function casts(): array
@@ -29,6 +30,7 @@ class ProfilJasa extends Model
             'tarif' => 'integer',
             'kategori' => 'array',
             'aktif' => 'boolean',
+            'tersedia' => 'boolean',
         ];
     }
 
@@ -41,5 +43,11 @@ class ProfilJasa extends Model
     public function scopeAktif(Builder $query): Builder
     {
         return $query->where('aktif', true);
+    }
+
+    /** Profil yang boleh tampil di katalog publik. */
+    public function scopeTampilDiKatalog(Builder $query): Builder
+    {
+        return $query->where('aktif', true)->where('tersedia', true);
     }
 }
