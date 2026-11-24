@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -52,6 +53,16 @@ class User extends Authenticatable
     public function profilJasa(): HasOne
     {
         return $this->hasOne(ProfilJasa::class);
+    }
+
+    public function lowongans(): HasMany
+    {
+        return $this->hasMany(Lowongan::class);
+    }
+
+    public function lamarans(): HasMany
+    {
+        return $this->hasMany(Lamaran::class);
     }
 
     /** Apakah akun ini sedang berstatus sebagai penyedia jasa aktif? */

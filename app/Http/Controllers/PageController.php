@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Lowongan;
 use App\Models\ProfilJasa;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -113,7 +114,7 @@ class PageController extends Controller
      */
     private function jobsData(): array
     {
-        return array_merge([
+        $dummy = array_merge([
             [
                 'slug' => 'desainer-konten-media-sosial',
                 'company' => 'Studio Karsa Banyumas',
@@ -145,6 +146,15 @@ class PageController extends Controller
             ],
             ['slug'=>'barista','company'=>'Kedai Kopi Lereng','title'=>'Barista','type'=>'Full-Time','mode'=>'On-site','location'=>'Baturaden, Banyumas','salary'=>'Rp2.300.000–2.800.000 / bulan'],
         ], $this->contohLowonganPartTime());
+
+        $db = Lowongan::query()
+            ->tampilDiKatalog()
+            ->latest()
+            ->get()
+            ->map(fn (Lowongan $l) => $l->dataKartu())
+            ->all();
+
+        return array_merge($db, $dummy);
     }
 
     /**
@@ -339,7 +349,18 @@ class PageController extends Controller
             'jenisList' => collect(config('lowongan.jenis'))->map(fn (array $info) => $info['label'])->all(),
         ]);
     }
-    public function job($slug){$job=collect($this->jobsData())->firstWhere('slug',$slug);abort_unless($job,404);return view('pages.job-detail',compact('job'));}
+    public function job($slug){
+        $lowongan = Lowongan::with('user')->where('slug', $slug)->first();
+        $job = $lowongan ? $lowongan->dataKartu() : collect($this->jobsData())->firstWhere('slug', $slug);
+        abort_unless($job, 404);
+
+        $lamaranSaya = null;
+        if ($lowongan && auth()->check()) {
+            $lamaranSaya = $lowongan->lamarans()->where('user_id', auth()->id())->first();
+        }
+
+        return view('pages.job-detail', compact('job', 'lowongan', 'lamaranSaya'));
+    }
     public function auth($mode){return view('auth.form',compact('mode'));}
     public function dashboard($page){return view('dashboard.index',compact('page'));}
     public function admin($page){return view('admin.index',compact('page'));}
