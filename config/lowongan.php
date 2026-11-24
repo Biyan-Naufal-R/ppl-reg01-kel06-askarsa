@@ -8,6 +8,8 @@ return [
     ],
 
     'pendidikan' => [
+        'sd' => 'SD sederajat',
+        'smp' => 'SMP sederajat',
         'sma' => 'SMA / SMK sederajat',
         'd3' => 'D3',
         's1' => 'S1',

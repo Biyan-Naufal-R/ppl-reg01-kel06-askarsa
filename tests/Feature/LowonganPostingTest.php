@@ -24,6 +24,11 @@ class LowonganPostingTest extends TestCase
             ->assertOk()
             ->assertSee('Full-Time')
             ->assertSee('Pendidikan minimum')
+            ->assertSee('SD sederajat')
+            ->assertSee('SMP sederajat')
+            ->assertSee('SMA / SMK sederajat')
+            ->assertSee('D3')
+            ->assertSee('S1')
             ->assertSee('Jurusan (opsional)')
             ->assertSee('sinkronForm');
     }
@@ -142,6 +147,36 @@ class LowonganPostingTest extends TestCase
             ->assertSee('S1')
             ->assertSee('Manajemen')
             ->assertDontSee('Durasi proyek');
+    }
+
+    public function test_lowongan_full_time_dengan_pendidikan_sd_bisa_difilter(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('dashboard.create-job.store'), [
+            'judul' => 'Staf Kebersihan Full Time',
+            'perusahaan' => 'CV Bersih Banyumas',
+            'kategori' => 'Full-Time',
+            'metode' => 'onsite',
+            'kecamatan' => 'Ajibarang',
+            'deskripsi' => 'Menjaga kebersihan area kantor dan lingkungan sekitar.',
+            'persyaratan' => 'Rajin dan mampu bekerja dalam tim.',
+            'pendidikan_minimum' => 'sd',
+            'batas_lamaran' => now()->addDays(10)->toDateString(),
+            'bayaran' => '2.200.000',
+        ])->assertRedirect(route('dashboard.posts'));
+
+        $this->assertDatabaseHas('lowongans', [
+            'judul' => 'Staf Kebersihan Full Time',
+            'kategori' => 'Full-Time',
+            'pendidikan_minimum' => 'sd',
+        ]);
+
+        $this->get(route('jobs.fulltime', ['pendidikan' => 'sd']))
+            ->assertOk()
+            ->assertSee('Staf Kebersihan Full Time')
+            ->assertSee('Pendidikan: SD sederajat')
+            ->assertDontSee('Staf Administrasi');
     }
 
     public function test_lowongan_full_time_wajib_memiliki_pendidikan_minimum(): void

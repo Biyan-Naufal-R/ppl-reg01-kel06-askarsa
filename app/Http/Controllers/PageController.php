@@ -129,14 +129,28 @@ class PageController extends Controller
                 'gaji_min' => 1500000,
                 'gaji_max' => 1500000,
             ],
-            ['slug'=>'staf-administrasi','company'=>'CV Satria Niaga','title'=>'Staf Administrasi','type'=>'Full-Time','mode'=>'On-site','location'=>'Purwokerto Selatan, Banyumas','salary'=>'Rp2.500.000–3.000.000 / bulan'],
+            [
+                'slug' => 'staf-administrasi',
+                'company' => 'CV Satria Niaga',
+                'title' => 'Staf Administrasi',
+                'type' => 'Full-Time',
+                'mode' => 'On-site',
+                'location' => 'Purwokerto Selatan, Banyumas',
+                'salary' => 'Rp2.500.000–3.000.000 / bulan',
+                'kecamatan' => 'Purwokerto Selatan',
+                'metode' => 'onsite',
+                'gaji_min' => 2500000,
+                'gaji_max' => 3000000,
+                'pendidikan_minimum' => 'sma',
+                'pendidikan_label' => config('lowongan.pendidikan.sma'),
+            ],
             [
                 'slug' => 'fotografer-produk-umkm',
                 'company' => 'Kedai Kopi Lereng',
                 'title' => 'Fotografer Produk UMKM',
                 'type' => 'Freelance',
                 'mode' => 'On-site',
-                'location' => 'Baturaden, Banyumas',
+                'location' => 'Baturraden, Banyumas',
                 'salary' => 'Rp800.000 / proyek',
                 'kecamatan' => 'Baturraden',
                 'jenis' => 'seni',
@@ -144,7 +158,21 @@ class PageController extends Controller
                 'gaji_min' => 800000,
                 'gaji_max' => 800000,
             ],
-            ['slug'=>'barista','company'=>'Kedai Kopi Lereng','title'=>'Barista','type'=>'Full-Time','mode'=>'On-site','location'=>'Baturaden, Banyumas','salary'=>'Rp2.300.000–2.800.000 / bulan'],
+            [
+                'slug' => 'barista',
+                'company' => 'Kedai Kopi Lereng',
+                'title' => 'Barista',
+                'type' => 'Full-Time',
+                'mode' => 'On-site',
+                'location' => 'Baturraden, Banyumas',
+                'salary' => 'Rp2.300.000–2.800.000 / bulan',
+                'kecamatan' => 'Baturraden',
+                'metode' => 'onsite',
+                'gaji_min' => 2300000,
+                'gaji_max' => 2800000,
+                'pendidikan_minimum' => 'sma',
+                'pendidikan_label' => config('lowongan.pendidikan.sma'),
+            ],
         ], $this->contohLowonganPartTime());
 
         $db = Lowongan::query()
@@ -200,7 +228,7 @@ class PageController extends Controller
         })->all();
     }
 
-    /** Saring lowongan freelance/part time memakai query yang sudah divalidasi. */
+    /** Saring lowongan (freelance/part time/full-time) memakai query yang sudah divalidasi. */
     private function filterJobs($jobs, array $filters)
     {
         return $jobs->filter(function (array $job) use ($filters): bool {
@@ -226,6 +254,10 @@ class PageController extends Controller
             }
 
             if (! empty($filters['metode']) && ($job['metode'] ?? '') !== $filters['metode']) {
+                return false;
+            }
+
+            if (! empty($filters['pendidikan']) && ($job['pendidikan_minimum'] ?? null) !== $filters['pendidikan']) {
                 return false;
             }
 
@@ -311,10 +343,41 @@ class PageController extends Controller
         $jobs = collect($this->jobsData());
 
         if ($type !== 'freelance') {
-            // Halaman full-time sengaja memakai logika lama tanpa filter.
-            $jobs = $jobs->when($type !== 'all', fn ($q) => $q->where('type', 'Full-Time'))->values()->all();
+            $jobs = $jobs->where('type', 'Full-Time')->values();
 
-            return view('pages.jobs', ['jobs' => $jobs, 'type' => $type]);
+            if ($type !== 'fulltime') {
+                return view('pages.jobs', ['jobs' => $jobs->all(), 'type' => $type]);
+            }
+
+            $filters = $request->validate([
+                'q' => ['sometimes', 'nullable', 'string', 'max:100'],
+                'kecamatan' => ['sometimes', 'nullable', 'string', Rule::in(config('domisili.kecamatan'))],
+                'metode' => ['sometimes', 'nullable', 'string', Rule::in(array_keys(config('lowongan.metode')))],
+                'pendidikan' => ['sometimes', 'nullable', 'string', Rule::in(array_keys(config('lowongan.pendidikan')))],
+                'gaji_min' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'gaji_max' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            ]);
+
+            $filters = array_filter($filters, fn ($nilai) => $nilai !== null && $nilai !== '');
+
+            foreach (['gaji_min', 'gaji_max'] as $kunci) {
+                if (array_key_exists($kunci, $filters)) {
+                    $filters[$kunci] = (float) $filters[$kunci];
+                }
+            }
+
+            if (isset($filters['gaji_min'], $filters['gaji_max']) && $filters['gaji_min'] > $filters['gaji_max']) {
+                [$filters['gaji_min'], $filters['gaji_max']] = [$filters['gaji_max'], $filters['gaji_min']];
+            }
+
+            return view('pages.jobs', [
+                'jobs' => $this->filterJobs($jobs, $filters)->all(),
+                'type' => $type,
+                'filters' => $filters,
+                'kecamatanList' => config('domisili.kecamatan'),
+                'metodeList' => config('lowongan.metode'),
+                'pendidikanList' => config('lowongan.pendidikan'),
+            ]);
         }
 
         $filters = $request->validate([
