@@ -16,6 +16,7 @@ class Pesanan extends Model
     public const STATUS_MENUNGGU = 'menunggu';
     public const STATUS_DIPROSES = 'diproses';
     public const STATUS_SELESAI = 'selesai';
+    public const STATUS_DITOLAK = 'ditolak';
     public const STATUS_DIBATALKAN = 'dibatalkan';
 
     protected $fillable = [
@@ -37,6 +38,8 @@ class Pesanan extends Model
         'harga',
         'status',
         'catatan_penyelesaian',
+        'alasan_penolakan',
+        'direspon_pada',
         'selesai_pada',
     ];
 
@@ -44,6 +47,7 @@ class Pesanan extends Model
     {
         return [
             'harga' => 'integer',
+            'direspon_pada' => 'datetime',
             'selesai_pada' => 'datetime',
             'tanggal_mulai' => 'date',
             'jenis_bantuan' => 'array',
@@ -69,10 +73,29 @@ class Pesanan extends Model
         });
     }
 
-    /** Pesanan yang sudah berakhir (selesai atau dibatalkan). */
+    /** Pesanan yang sudah berakhir (selesai, ditolak, atau dibatalkan). */
     public function scopeRiwayat(Builder $query): Builder
     {
-        return $query->whereIn('status', [self::STATUS_SELESAI, self::STATUS_DIBATALKAN]);
+        return $query->whereIn('status', [
+            self::STATUS_SELESAI,
+            self::STATUS_DITOLAK,
+            self::STATUS_DIBATALKAN,
+        ]);
+    }
+
+    public function bisaDiterima(): bool
+    {
+        return $this->status === self::STATUS_MENUNGGU;
+    }
+
+    public function bisaDitolak(): bool
+    {
+        return $this->status === self::STATUS_MENUNGGU;
+    }
+
+    public function bisaDibatalkan(): bool
+    {
+        return $this->status === self::STATUS_MENUNGGU;
     }
 
     public function bisaDiselesaikan(): bool

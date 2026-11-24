@@ -18,7 +18,11 @@
                 $inisial = collect(preg_split('/\s+/', trim($item->penyedia->name ?? 'P')))->map(fn($k)=>\Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($k,0,1)))->take(2)->implode('');
                 $selesai = $item->status === \App\Models\Pesanan::STATUS_SELESAI;
                 $badge = $selesai ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700';
-                $label = $selesai ? 'Selesai' : 'Dibatalkan';
+                $label = match($item->status) {
+                    \App\Models\Pesanan::STATUS_SELESAI => 'Selesai',
+                    \App\Models\Pesanan::STATUS_DITOLAK => 'Ditolak',
+                    default => 'Dibatalkan',
+                };
             @endphp
             <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

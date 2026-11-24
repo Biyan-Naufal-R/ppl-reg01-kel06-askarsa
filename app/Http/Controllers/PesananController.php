@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\TolakPesananRequest;
 use App\Models\Pesanan;
 use App\Models\ProfilJasa;
 use App\Models\User;
+use App\Notifications\PesananDirespon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PesananController extends Controller
@@ -148,52 +152,106 @@ class PesananController extends Controller
     /** Detail satu pesanan, hanya untuk pelanggan atau penyedia yang terlibat. */
     public function show(Request $request, Pesanan $pesanan): View
     {
-        abort_unless($pesanan->dimilikiOleh($request->user()), 403);
+        $this->authorize('view', $pesanan);
 
         $pesanan->load(['pelanggan', 'penyedia']);
-        $userId = $request->user()->id;
+        $userId = (int) $request->user()->id;
+
+        // Membuka detail menandai notifikasi terkait sebagai sudah dibaca.
+        foreach ($request->user()->unreadNotifications as $notifikasi) {
+            if (($notifikasi->data['pesanan_id'] ?? null) === $pesanan->id) {
+                $notifikasi->markAsRead();
+            }
+        }
 
         return view('pesanan.show', [
             'pesanan' => $pesanan,
             'bisaSelesaikan' => (int) $pesanan->penyedia_id === $userId
                 && $pesanan->bisaDiselesaikan(),
             'bisaTerima' => (int) $pesanan->penyedia_id === $userId
-                && $pesanan->status === Pesanan::STATUS_MENUNGGU,
+                && $pesanan->bisaDiterima(),
             'bisaTolak' => (int) $pesanan->penyedia_id === $userId
-                && $pesanan->status === Pesanan::STATUS_MENUNGGU,
+                && $pesanan->bisaDitolak(),
             'bisaBatalkan' => (int) $pesanan->pelanggan_id === $userId
-                && $pesanan->status === Pesanan::STATUS_MENUNGGU,
+                && $pesanan->bisaDibatalkan(),
         ]);
     }
 
     /** Penyedia menerima pesanan menunggu, pesanan diproses dan profil jadi tidak tersedia. */
     public function terima(Request $request, Pesanan $pesanan): RedirectResponse
     {
-        abort_unless((int) $pesanan->penyedia_id === $request->user()->id, 403);
+        $this->authorize('terima', $pesanan);
 
-        if ($pesanan->status !== Pesanan::STATUS_MENUNGGU) {
-            return back()->withErrors(['status' => 'Hanya pesanan berstatus "menunggu" yang bisa diterima.']);
-        }
+        DB::transaction(function () use ($pesanan, $request) {
+            $terkunci = Pesanan::whereKey($pesanan->id)->lockForUpdate()->firstOrFail();
 
-        $pesanan->update(['status' => Pesanan::STATUS_DIPROSES]);
-        $request->user()->profilJasa?->update(['tersedia' => false]);
+            if (! $terkunci->bisaDiterima()) {
+                throw ValidationException::withMessages([
+                    'status' => 'Hanya pesanan berstatus "menunggu" yang bisa diterima.',
+                ]);
+            }
+
+            $penyedia = $request->user();
+            // Kunci baris profil agar dua transaksi tidak sama-sama membaca
+            // "tersedia" sebelum salah satu menulisnya menjadi false.
+            $profil = $penyedia->profilJasa()->lockForUpdate()->first();
+
+            if (! $profil || ! $profil->aktif) {
+                throw ValidationException::withMessages([
+                    'jasa' => 'Aktifkan profil jasa Anda terlebih dahulu untuk menerima pesanan.',
+                ]);
+            }
+
+            $sibuk = Pesanan::where('penyedia_id', $penyedia->id)
+                ->where('status', Pesanan::STATUS_DIPROSES)
+                ->exists();
+            if ($sibuk) {
+                throw ValidationException::withMessages([
+                    'status' => 'Selesaikan pesanan yang sedang diproses terlebih dahulu.',
+                ]);
+            }
+
+            if (! $profil->tersedia) {
+                throw ValidationException::withMessages([
+                    'jasa' => 'Profil jasa Anda sedang tidak tersedia.',
+                ]);
+            }
+
+            $terkunci->update([
+                'status' => Pesanan::STATUS_DIPROSES,
+                'direspon_pada' => now(),
+            ]);
+            $profil->update(['tersedia' => false]);
+
+            $terkunci->pelanggan->notify(new PesananDirespon($terkunci, Pesanan::STATUS_DIPROSES));
+        });
 
         return back()->with('sukses', 'Pesanan diterima dan sedang diproses. Profil jasa Anda sementara tidak tersedia.');
     }
 
-    /** Penyedia menolak pesanan menunggu. */
-    public function tolak(Request $request, Pesanan $pesanan): RedirectResponse
+    /** Penyedia menolak pesanan menunggu beserta alasannya. */
+    public function tolak(TolakPesananRequest $request, Pesanan $pesanan): RedirectResponse
     {
-        abort_unless((int) $pesanan->penyedia_id === $request->user()->id, 403);
+        $this->authorize('tolak', $pesanan);
 
-        if ($pesanan->status !== Pesanan::STATUS_MENUNGGU) {
-            return back()->withErrors(['status' => 'Hanya pesanan berstatus "menunggu" yang bisa ditolak.']);
-        }
+        DB::transaction(function () use ($request, $pesanan) {
+            $terkunci = Pesanan::whereKey($pesanan->id)->lockForUpdate()->firstOrFail();
 
-        $pesanan->update([
-            'status' => Pesanan::STATUS_DIBATALKAN,
-            'catatan_penyelesaian' => 'Ditolak oleh penyedia.',
-        ]);
+            if (! $terkunci->bisaDitolak()) {
+                throw ValidationException::withMessages([
+                    'status' => 'Hanya pesanan berstatus "menunggu" yang bisa ditolak.',
+                ]);
+            }
+
+            $terkunci->update([
+                'status' => Pesanan::STATUS_DITOLAK,
+                'alasan_penolakan' => $request->input('alasan'),
+                'catatan_penyelesaian' => null,
+                'direspon_pada' => now(),
+            ]);
+
+            $terkunci->pelanggan->notify(new PesananDirespon($terkunci, Pesanan::STATUS_DITOLAK));
+        });
 
         return back()->with('sukses', 'Pesanan ditolak.');
     }
@@ -201,16 +259,22 @@ class PesananController extends Controller
     /** Pelanggan membatalkan pesanan yang belum diterima penyedia. */
     public function batalkan(Request $request, Pesanan $pesanan): RedirectResponse
     {
-        abort_unless((int) $pesanan->pelanggan_id === $request->user()->id, 403);
+        $this->authorize('batalkan', $pesanan);
 
-        if ($pesanan->status !== Pesanan::STATUS_MENUNGGU) {
-            return back()->withErrors(['status' => 'Pesanan yang sudah diterima/diproses tidak bisa dibatalkan.']);
-        }
+        DB::transaction(function () use ($pesanan) {
+            $terkunci = Pesanan::whereKey($pesanan->id)->lockForUpdate()->firstOrFail();
 
-        $pesanan->update([
-            'status' => Pesanan::STATUS_DIBATALKAN,
-            'catatan_penyelesaian' => 'Dibatalkan oleh pelanggan.',
-        ]);
+            if (! $terkunci->bisaDibatalkan()) {
+                throw ValidationException::withMessages([
+                    'status' => 'Pesanan yang sudah diterima/diproses tidak bisa dibatalkan.',
+                ]);
+            }
+
+            $terkunci->update([
+                'status' => Pesanan::STATUS_DIBATALKAN,
+                'catatan_penyelesaian' => 'Dibatalkan oleh pelanggan.',
+            ]);
+        });
 
         return back()->with('sukses', 'Pesanan dibatalkan.');
     }
@@ -218,30 +282,38 @@ class PesananController extends Controller
     /** Penyedia menandai pesanan berstatus "diproses" menjadi "selesai". */
     public function selesaikan(Request $request, Pesanan $pesanan): RedirectResponse
     {
-        abort_unless((int) $pesanan->penyedia_id === $request->user()->id, 403);
-
-        if (! $pesanan->bisaDiselesaikan()) {
-            return back()->withErrors([
-                'status' => 'Hanya pesanan berstatus "diproses" yang bisa diselesaikan.',
-            ]);
-        }
+        $this->authorize('selesaikan', $pesanan);
 
         $data = $request->validate([
             'catatan_penyelesaian' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $pesanan->update([
-            'status' => Pesanan::STATUS_SELESAI,
-            'catatan_penyelesaian' => $data['catatan_penyelesaian'] ?? null,
-            'selesai_pada' => now(),
-        ]);
+        DB::transaction(function () use ($data, $pesanan, $request) {
+            $terkunci = Pesanan::whereKey($pesanan->id)->lockForUpdate()->firstOrFail();
 
-        $masihAdaProses = Pesanan::where('penyedia_id', $request->user()->id)
-            ->where('status', Pesanan::STATUS_DIPROSES)
-            ->exists();
-        if (! $masihAdaProses) {
-            $request->user()->profilJasa?->update(['tersedia' => true]);
-        }
+            if (! $terkunci->bisaDiselesaikan()) {
+                throw ValidationException::withMessages([
+                    'status' => 'Hanya pesanan berstatus "diproses" yang bisa diselesaikan.',
+                ]);
+            }
+
+            $terkunci->update([
+                'status' => Pesanan::STATUS_SELESAI,
+                'catatan_penyelesaian' => $data['catatan_penyelesaian'] ?? null,
+                'selesai_pada' => now(),
+            ]);
+
+            $masihAdaProses = Pesanan::where('penyedia_id', $request->user()->id)
+                ->where('status', Pesanan::STATUS_DIPROSES)
+                ->exists();
+            if (! $masihAdaProses) {
+                // Kunci profil sebelum menulis ulang status ketersediaannya.
+                $request->user()->profilJasa()
+                    ->lockForUpdate()
+                    ->first()
+                    ?->update(['tersedia' => true]);
+            }
+        });
 
         return redirect()
             ->route('dashboard.permintaan.riwayat')

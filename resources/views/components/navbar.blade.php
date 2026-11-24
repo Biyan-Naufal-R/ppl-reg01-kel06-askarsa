@@ -1,3 +1,6 @@
+@php
+    $notifikasiBelumDibaca = auth()->check() ? auth()->user()->unreadNotifications : collect();
+@endphp
 <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
     <div class="container-app flex h-16 items-center justify-between">
         <div class="flex items-center gap-3">
@@ -33,6 +36,9 @@
                             {{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr(auth()->user()->name, 0, 1)) }}
                         </span>
                         <span class="hidden max-w-36 truncate md:inline">{{ auth()->user()->name }}</span>
+                        @if($notifikasiBelumDibaca->isNotEmpty())
+                            <span class="size-2 rounded-full bg-red-500" title="{{ $notifikasiBelumDibaca->count() }} notifikasi belum dibaca" aria-label="{{ $notifikasiBelumDibaca->count() }} notifikasi belum dibaca"></span>
+                        @endif
                         <svg class="size-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fill-rule="evenodd" d="M5.22 7.47a.75.75 0 0 1 1.06 0L10 11.19l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
                         </svg>
@@ -43,6 +49,19 @@
                             <p class="truncate text-sm font-bold text-askarsa-ink">{{ auth()->user()->name }}</p>
                             <p class="truncate text-xs text-slate-500">{{ auth()->user()->email }}</p>
                         </div>
+                        @if($notifikasiBelumDibaca->isNotEmpty())
+                            <div class="border-b border-slate-100 px-4 py-3">
+                                <p class="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Notifikasi ({{ $notifikasiBelumDibaca->count() }})</p>
+                                <div class="space-y-2">
+                                    @foreach($notifikasiBelumDibaca->take(3) as $notifikasi)
+                                        <a href="{{ $notifikasi->data['url'] ?? route('dashboard.pesanan.proses') }}" class="block rounded-lg bg-slate-50 px-3 py-2 hover:bg-slate-100">
+                                            <p class="text-xs font-semibold text-askarsa-ink">{{ $notifikasi->data['judul'] ?? 'Notifikasi' }}</p>
+                                            <p class="mt-0.5 line-clamp-2 text-[11px] text-slate-500">{{ $notifikasi->data['pesan'] ?? '' }}</p>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
                         <div class="p-2 text-sm">
                             <a class="block rounded-lg px-3 py-2 hover:bg-slate-50" href="{{ route('dashboard.profile') }}">Profil saya</a>
                             <a class="block rounded-lg px-3 py-2 hover:bg-slate-50" href="{{ route('dashboard.edit-profile') }}">Edit profil / akun</a>

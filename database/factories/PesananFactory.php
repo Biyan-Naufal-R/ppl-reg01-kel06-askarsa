@@ -36,6 +36,15 @@ class PesananFactory extends Factory
         ]);
     }
 
+    public function ditolak(): static
+    {
+        return $this->state(fn () => [
+            'status' => Pesanan::STATUS_DITOLAK,
+            'alasan_penolakan' => 'Jadwal tidak tersedia.',
+            'direspon_pada' => now(),
+        ]);
+    }
+
     public function dibatalkan(): static
     {
         return $this->state(fn () => ['status' => Pesanan::STATUS_DIBATALKAN]);

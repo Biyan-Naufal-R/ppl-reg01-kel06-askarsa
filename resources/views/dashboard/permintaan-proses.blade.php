@@ -40,7 +40,12 @@
                     <a href="{{ route('pesanan.show', $item) }}" class="btn-outline !px-4 !py-2 !text-sm">Lihat Detail</a>
                     @if ($item->status === \App\Models\Pesanan::STATUS_MENUNGGU)
                         <form method="POST" action="{{ route('pesanan.terima', $item) }}">@csrf <button class="rounded-lg bg-askarsa px-4 py-2 text-sm font-semibold text-white hover:bg-askarsa-dark">Terima</button></form>
-                        <form method="POST" action="{{ route('pesanan.tolak', $item) }}" onsubmit="return confirm('Tolak permintaan ini?')">@csrf <button class="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">Tolak</button></form>
+                        <form method="POST" action="{{ route('pesanan.tolak', $item) }}" onsubmit="return confirm('Tolak permintaan ini?')" class="flex flex-wrap items-center gap-2">
+                            @csrf
+                            <input type="text" name="alasan" required minlength="10" maxlength="500" placeholder="Alasan penolakan (min. 10 karakter)" class="w-56 rounded-lg border border-slate-200 px-3 py-2 text-sm @error('alasan') border-red-400 @enderror" aria-label="Alasan penolakan" aria-invalid="@error('alasan') true @else false @enderror" value="{{ old('alasan') }}">
+                            <button class="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">Tolak</button>
+                            @error('alasan') <p class="w-full text-xs text-red-600">{{ $message }}</p> @enderror
+                        </form>
                     @elseif ($item->status === \App\Models\Pesanan::STATUS_DIPROSES)
                         <form method="POST" action="{{ route('pesanan.selesaikan', $item) }}" onsubmit="return confirm('Tandai pesanan ini selesai?')">@csrf <button class="rounded-lg bg-askarsa px-4 py-2 text-sm font-semibold text-white hover:bg-askarsa-dark">Tandai Selesai</button></form>
                     @endif

@@ -2,21 +2,25 @@
 @section('title', 'Detail Pesanan — ASKARSA')
 @section('content')
 @php
+    use App\Models\Pesanan;
+
     $isPenyedia = (int) $pesanan->penyedia_id === auth()->id();
     $backRoute = $isPenyedia ? route('dashboard.permintaan.proses') : route('dashboard.pesanan.proses');
     $backLabel = $isPenyedia ? 'Permintaan Jasa Masuk' : 'Pesanan Jasa';
     $badge = match($pesanan->status) {
-        \App\Models\Pesanan::STATUS_SELESAI => 'bg-emerald-100 text-emerald-700',
-        \App\Models\Pesanan::STATUS_DIBATALKAN => 'bg-red-100 text-red-700',
-        \App\Models\Pesanan::STATUS_DIPROSES => 'bg-amber-100 text-amber-800',
+        Pesanan::STATUS_SELESAI => 'bg-emerald-100 text-emerald-700',
+        Pesanan::STATUS_DITOLAK, Pesanan::STATUS_DIBATALKAN => 'bg-red-100 text-red-700',
+        Pesanan::STATUS_DIPROSES => 'bg-amber-100 text-amber-800',
         default => 'bg-slate-100 text-slate-600',
     };
     $label = match($pesanan->status) {
-        \App\Models\Pesanan::STATUS_SELESAI => 'Selesai',
-        \App\Models\Pesanan::STATUS_DIBATALKAN => (str_contains((string)$pesanan->catatan_penyelesaian,'Ditolak') ? 'Ditolak' : 'Dibatalkan'),
-        \App\Models\Pesanan::STATUS_DIPROSES => 'Diproses',
+        Pesanan::STATUS_SELESAI => 'Selesai',
+        Pesanan::STATUS_DITOLAK => 'Ditolak',
+        Pesanan::STATUS_DIBATALKAN => 'Dibatalkan',
+        Pesanan::STATUS_DIPROSES => 'Diproses',
         default => 'Menunggu',
     };
+    $sudahDirespon = $pesanan->status !== Pesanan::STATUS_MENUNGGU;
 @endphp
 <section class="container-app py-8">
     <p class="text-xs text-slate-400"><a href="{{ route('home') }}" class="hover:text-askarsa">Beranda</a> / Kelola Aktivitas / <a href="{{ $backRoute }}" class="hover:text-askarsa">{{ $backLabel }}</a> / Detail</p>
@@ -31,6 +35,44 @@
 
     <div class="mt-6 grid gap-6 lg:grid-cols-3">
         <div class="space-y-6 lg:col-span-2">
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 class="text-sm font-bold uppercase tracking-wide text-slate-400">Progres Pesanan</h2>
+                <ol class="mt-4 space-y-3 text-sm">
+                    <li class="flex items-start gap-3">
+                        <span class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-700">✓</span>
+                        <div><p class="font-semibold text-askarsa-ink">Permintaan dibuat</p><p class="text-xs text-slate-500">{{ $pesanan->created_at->format('d M Y H:i') }}</p></div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full {{ $sudahDirespon ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }} text-[10px] font-bold">{{ $sudahDirespon ? '✓' : '•' }}</span>
+                        <div>
+                            <p class="font-semibold text-askarsa-ink">Menunggu respons penyedia</p>
+                            <p class="text-xs text-slate-500">{{ $sudahDirespon ? 'Selesai' : 'Berlangsung' }}</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">{{ $sudahDirespon ? '✓' : '•' }}</span>
+                        <div>
+                            <p class="font-semibold text-askarsa-ink">
+                                @if(in_array($pesanan->status, [Pesanan::STATUS_DIPROSES, Pesanan::STATUS_SELESAI], true))
+                                    Diterima penyedia
+                                @elseif($pesanan->status === Pesanan::STATUS_DITOLAK)
+                                    Ditolak penyedia
+                                @elseif($pesanan->status === Pesanan::STATUS_DIBATALKAN)
+                                    Dibatalkan oleh pemesan
+                                @else
+                                    Menunggu keputusan penyedia
+                                @endif
+                            </p>
+                            <p class="text-xs text-slate-500">{{ $pesanan->direspon_pada?->format('d M Y H:i') ?? '-' }}</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full {{ $pesanan->status === Pesanan::STATUS_SELESAI ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' }} text-[10px] font-bold">{{ $pesanan->status === Pesanan::STATUS_SELESAI ? '✓' : '•' }}</span>
+                        <div><p class="font-semibold text-askarsa-ink">Selesai</p><p class="text-xs text-slate-500">{{ $pesanan->selesai_pada?->format('d M Y H:i') ?? '-' }}</p></div>
+                    </li>
+                </ol>
+            </div>
+
             <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 class="text-sm font-bold uppercase tracking-wide text-slate-400">Informasi Pemesan</h2>
                 <dl class="mt-4 grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
@@ -51,6 +93,13 @@
                     <div class="sm:col-span-2"><dt class="text-slate-400">Catatan Tambahan</dt><dd class="font-medium text-askarsa-ink">{{ $pesanan->catatan_tambahan ?: '-' }}</dd></div>
                 </dl>
             </div>
+
+            @if ($pesanan->alasan_penolakan)
+                <div class="rounded-2xl border border-red-200 bg-red-50 p-6 shadow-sm">
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-red-700">Alasan Penolakan</h2>
+                    <p class="mt-3 text-sm text-red-900">{{ $pesanan->alasan_penolakan }}</p>
+                </div>
+            @endif
 
             @if ($pesanan->catatan_penyelesaian)
                 <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -79,7 +128,13 @@
                     <form method="POST" action="{{ route('pesanan.terima', $pesanan) }}">@csrf <button class="btn-primary w-full">Terima Pesanan</button></form>
                 @endif
                 @if ($bisaTolak)
-                    <form method="POST" action="{{ route('pesanan.tolak', $pesanan) }}" onsubmit="return confirm('Tolak permintaan ini?')">@csrf <button class="w-full rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50">Tolak Pesanan</button></form>
+                    <form method="POST" action="{{ route('pesanan.tolak', $pesanan) }}" class="space-y-3">
+                        @csrf
+                        <label class="block text-sm font-medium text-slate-600" for="alasan">Alasan penolakan <span class="text-red-600">*</span></label>
+                        <textarea id="alasan" name="alasan" rows="3" minlength="10" maxlength="500" required class="field" placeholder="Contoh: Jadwal yang diminta tidak tersedia">{{ old('alasan') }}</textarea>
+                        @error('alasan') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                        <button class="w-full rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50">Tolak Pesanan</button>
+                    </form>
                 @endif
                 @if ($bisaBatalkan)
                     <form method="POST" action="{{ route('pesanan.batalkan', $pesanan) }}" onsubmit="return confirm('Batalkan pesanan ini?')">@csrf <button class="w-full rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50">Batalkan Pesanan</button></form>

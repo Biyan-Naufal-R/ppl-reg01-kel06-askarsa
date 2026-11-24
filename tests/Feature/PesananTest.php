@@ -285,6 +285,11 @@ class PesananTest extends TestCase
 
         $this->assertSame(Pesanan::STATUS_DIPROSES, $pesanan->fresh()->status);
         $this->assertFalse($pesanan->penyedia->fresh()->profilJasa->tersedia);
+        $this->assertNotNull($pesanan->fresh()->direspon_pada);
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_id' => $pesanan->pelanggan_id,
+            'notifiable_type' => \App\Models\User::class,
+        ]);
     }
 
     public function test_selesai_mengembalikan_ketersediaan_otomatis(): void
@@ -319,9 +324,17 @@ class PesananTest extends TestCase
     {
         $pesanan = Pesanan::factory()->create(['status' => Pesanan::STATUS_MENUNGGU]);
         $this->actingAs($pesanan->penyedia)
-            ->post(route('pesanan.tolak', $pesanan))
+            ->post(route('pesanan.tolak', $pesanan), [
+                'alasan' => 'Jadwal yang diminta tidak tersedia.',
+            ])
             ->assertRedirect();
-        $this->assertSame(Pesanan::STATUS_DIBATALKAN, $pesanan->fresh()->status);
+        $this->assertSame(Pesanan::STATUS_DITOLAK, $pesanan->fresh()->status);
+        $this->assertSame('Jadwal yang diminta tidak tersedia.', $pesanan->fresh()->alasan_penolakan);
+        $this->assertNotNull($pesanan->fresh()->direspon_pada);
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_id' => $pesanan->pelanggan_id,
+            'notifiable_type' => \App\Models\User::class,
+        ]);
 
         $lain = Pesanan::factory()->create(['status' => Pesanan::STATUS_MENUNGGU]);
         $this->actingAs($lain->penyedia)
@@ -367,5 +380,152 @@ class PesananTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->get(route('pesanan.create', 'bima-saputra'))
             ->assertNotFound();
+    }
+
+    public function test_tolak_wajib_menyertakan_alasan(): void
+    {
+        $pesanan = Pesanan::factory()->create(['status' => Pesanan::STATUS_MENUNGGU]);
+
+        $this->actingAs($pesanan->penyedia)
+            ->from(route('pesanan.show', $pesanan))
+            ->post(route('pesanan.tolak', $pesanan), ['alasan' => ''])
+            ->assertRedirect(route('pesanan.show', $pesanan))
+            ->assertSessionHasErrors('alasan');
+
+        $this->assertSame(Pesanan::STATUS_MENUNGGU, $pesanan->fresh()->status);
+    }
+
+    public function test_dashboard_penyedia_menampilkan_error_alasan_penolakan(): void
+    {
+        $pesanan = Pesanan::factory()->create(['status' => Pesanan::STATUS_MENUNGGU]);
+
+        $this->actingAs($pesanan->penyedia)
+            ->from(route('dashboard.permintaan.proses'))
+            ->post(route('pesanan.tolak', $pesanan), ['alasan' => 'pendek'])
+            ->assertRedirect(route('dashboard.permintaan.proses'));
+
+        $this->get(route('dashboard.permintaan.proses'))
+            ->assertOk()
+            ->assertSee('Alasan penolakan minimal 10 karakter.');
+
+        $this->assertSame(Pesanan::STATUS_MENUNGGU, $pesanan->fresh()->status);
+    }
+
+    public function test_penyedia_tidak_bisa_menerima_pesanan_ketika_sudah_ada_yang_diproses(): void
+    {
+        $penyedia = User::factory()->create();
+        ProfilJasa::factory()->create(['user_id' => $penyedia->id, 'tersedia' => true]);
+
+        Pesanan::factory()->diproses()->create(['penyedia_id' => $penyedia->id]);
+        $menunggu = Pesanan::factory()->create([
+            'penyedia_id' => $penyedia->id,
+            'status' => Pesanan::STATUS_MENUNGGU,
+        ]);
+
+        $this->actingAs($penyedia)
+            ->post(route('pesanan.terima', $menunggu))
+            ->assertSessionHasErrors('status');
+
+        $this->assertSame(Pesanan::STATUS_MENUNGGU, $menunggu->fresh()->status);
+        $this->assertTrue($penyedia->fresh()->profilJasa->tersedia);
+    }
+
+    public function test_penyedia_tanpa_profil_aktif_tidak_bisa_menerima(): void
+    {
+        $pesanan = Pesanan::factory()->create(['status' => Pesanan::STATUS_MENUNGGU]);
+
+        $this->actingAs($pesanan->penyedia)
+            ->post(route('pesanan.terima', $pesanan))
+            ->assertSessionHasErrors('jasa');
+
+        $this->assertSame(Pesanan::STATUS_MENUNGGU, $pesanan->fresh()->status);
+    }
+
+    public function test_pihak_ketiga_tidak_bisa_menerima_atau_menolak(): void
+    {
+        $menunggu = Pesanan::factory()->create(['status' => Pesanan::STATUS_MENUNGGU]);
+        $orangLain = User::factory()->create();
+
+        $this->actingAs($orangLain)
+            ->post(route('pesanan.terima', $menunggu))
+            ->assertForbidden();
+
+        $this->actingAs($orangLain)
+            ->post(route('pesanan.tolak', $menunggu), ['alasan' => 'Alasan yang cukup panjang.'])
+            ->assertForbidden();
+
+        $this->assertSame(Pesanan::STATUS_MENUNGGU, $menunggu->fresh()->status);
+    }
+
+    public function test_pihak_ketiga_tidak_bisa_menolak_walaupun_alasan_tidak_valid(): void
+    {
+        $menunggu = Pesanan::factory()->create(['status' => Pesanan::STATUS_MENUNGGU]);
+
+        // Otorisasi FormRequest berjalan sebelum validasi: harus 403, bukan 422.
+        $this->actingAs(User::factory()->create())
+            ->post(route('pesanan.tolak', $menunggu), ['alasan' => ''])
+            ->assertForbidden();
+
+        $this->assertSame(Pesanan::STATUS_MENUNGGU, $menunggu->fresh()->status);
+    }
+
+    public function test_detail_menampilkan_alasan_penolakan(): void
+    {
+        $pesanan = Pesanan::factory()->ditolak()->create([
+            'judul' => 'Servis AC',
+            'alasan_penolakan' => 'Teknisi sedang tidak tersedia.',
+        ]);
+
+        $this->actingAs($pesanan->pelanggan)
+            ->get(route('pesanan.show', $pesanan))
+            ->assertOk()
+            ->assertSee('Ditolak')
+            ->assertSee('Teknisi sedang tidak tersedia.');
+    }
+
+    public function test_pesanan_ditolak_masuk_riwayat_kedua_pihak(): void
+    {
+        $pesanan = Pesanan::factory()->ditolak()->create(['judul' => 'Cat Dinding']);
+
+        $this->actingAs($pesanan->pelanggan)
+            ->get(route('dashboard.pesanan.riwayat'))
+            ->assertOk()
+            ->assertSee('Cat Dinding')
+            ->assertSee('Ditolak');
+
+        $this->actingAs($pesanan->penyedia)
+            ->get(route('dashboard.permintaan.riwayat'))
+            ->assertOk()
+            ->assertSee('Cat Dinding')
+            ->assertSee('Ditolak');
+    }
+
+    public function test_pesanan_ditolak_tidak_bisa_diterima_ulang(): void
+    {
+        $pesanan = Pesanan::factory()->ditolak()->create();
+
+        $this->actingAs($pesanan->penyedia)
+            ->post(route('pesanan.terima', $pesanan))
+            ->assertSessionHasErrors('status');
+
+        $this->assertSame(Pesanan::STATUS_DITOLAK, $pesanan->fresh()->status);
+    }
+
+    public function test_membuka_detail_menandai_notifikasi_terkait_sudah_dibaca(): void
+    {
+        $pesanan = Pesanan::factory()->create(['status' => Pesanan::STATUS_MENUNGGU]);
+        ProfilJasa::factory()->create(['user_id' => $pesanan->penyedia_id, 'tersedia' => true]);
+
+        $this->actingAs($pesanan->penyedia)
+            ->post(route('pesanan.terima', $pesanan));
+
+        $pelanggan = $pesanan->pelanggan;
+        $this->assertSame(1, $pelanggan->unreadNotifications()->count());
+
+        $this->actingAs($pelanggan)
+            ->get(route('pesanan.show', $pesanan))
+            ->assertOk();
+
+        $this->assertSame(0, $pelanggan->fresh()->unreadNotifications()->count());
     }
 }
