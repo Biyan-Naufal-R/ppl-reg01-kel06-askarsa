@@ -4,6 +4,8 @@
 @php
     $isEdit = (bool) $lowongan;
     $action = $isEdit ? route('dashboard.create-job.update', $lowongan) : route('dashboard.create-job.store');
+    $kategoriDipilih = old('kategori', $lowongan->kategori ?? 'Freelance');
+    $fullTime = $kategoriDipilih === 'Full-Time';
 @endphp
 <section class="container-app py-10">
     <p class="text-xs text-slate-500">Beranda / Kelola Aktivitas / {{ $isEdit ? 'Edit Lowongan' : 'Buat Lowongan' }}</p>
@@ -17,11 +19,11 @@
             <div class="card p-7">
                 <h2 class="text-lg font-bold text-askarsa-ink">Informasi pekerjaan</h2>
 
-                <label class="field-label mt-5" for="kategori">Jenis lowongan *</label>
+                <label class="field-label mt-5" for="kategori">Jenis pekerjaan *</label>
                 <select class="field @error('kategori') !border-red-400 @enderror" id="kategori" name="kategori" required>
-                    <option value="">Pilih jenis lowongan</option>
+                    <option value="">Pilih jenis pekerjaan</option>
                     @foreach(config('lowongan.kategori') as $nilai => $label)
-                        <option value="{{ $nilai }}" @selected(old('kategori', $lowongan->kategori ?? 'Freelance') === $nilai)>{{ $label }}</option>
+                        <option value="{{ $nilai }}" @selected($kategoriDipilih === $nilai)>{{ $label }}</option>
                     @endforeach
                 </select>
                 @error('kategori')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
@@ -34,14 +36,16 @@
                 <input class="field @error('perusahaan') !border-red-400 @enderror" id="perusahaan" name="perusahaan" value="{{ old('perusahaan', $lowongan->perusahaan ?? auth()->user()->name) }}" required>
                 @error('perusahaan')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
 
-                <label class="field-label mt-5" for="jenis">Kategori pekerjaan *</label>
-                <select class="field @error('jenis') !border-red-400 @enderror" id="jenis" name="jenis" required>
-                    <option value="">Pilih kategori pekerjaan</option>
-                    @foreach(config('lowongan.jenis') as $nilai => $info)
-                        <option value="{{ $nilai }}" @selected(old('jenis', $lowongan->jenis ?? '') === $nilai)>{{ $info['label'] }}</option>
-                    @endforeach
-                </select>
-                @error('jenis')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                <div id="field-jenis" @if($fullTime) hidden @endif>
+                    <label class="field-label mt-5" for="jenis">Kategori pekerjaan *</label>
+                    <select class="field @error('jenis') !border-red-400 @enderror" id="jenis" name="jenis" @if(! $fullTime) required @endif>
+                        <option value="">Pilih kategori pekerjaan</option>
+                        @foreach(config('lowongan.jenis') as $nilai => $info)
+                            <option value="{{ $nilai }}" @selected(old('jenis', $lowongan->jenis ?? '') === $nilai)>{{ $info['label'] }}</option>
+                        @endforeach
+                    </select>
+                    @error('jenis')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
 
                 <label class="field-label mt-5" for="deskripsi">Deskripsi pekerjaan *</label>
                 <textarea class="field min-h-28 @error('deskripsi') !border-red-400 @enderror" id="deskripsi" name="deskripsi" rows="4" required>{{ old('deskripsi', $lowongan->deskripsi ?? '') }}</textarea>
@@ -49,14 +53,29 @@
 
                 <div class="mt-5 grid gap-4 md:grid-cols-2">
                     <div>
-                        <label class="field-label" for="bayaran">Bayaran proyek (Rp) *</label>
+                        <label class="field-label" for="bayaran" id="label-bayaran">{{ $fullTime ? 'Gaji per bulan (Rp) *' : 'Bayaran proyek (Rp) *' }}</label>
                         <input class="field @error('bayaran') !border-red-400 @enderror" id="bayaran" name="bayaran" inputmode="numeric" value="{{ old('bayaran', isset($lowongan) ? number_format($lowongan->gaji_min,0,',','.') : '') }}" required>
                         @error('bayaran')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
-                    <div>
+                    <div id="field-durasi" @if($fullTime) hidden @endif>
                         <label class="field-label" for="durasi">Durasi proyek *</label>
-                        <input class="field @error('durasi') !border-red-400 @enderror" id="durasi" name="durasi" value="{{ old('durasi', $lowongan->durasi ?? '') }}" required>
+                        <input class="field @error('durasi') !border-red-400 @enderror" id="durasi" name="durasi" value="{{ old('durasi', $lowongan->durasi ?? '') }}" @if(! $fullTime) required @endif>
                         @error('durasi')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div id="field-pendidikan" @if(! $fullTime) hidden @endif>
+                        <label class="field-label" for="pendidikan_minimum">Pendidikan minimum *</label>
+                        <select class="field @error('pendidikan_minimum') !border-red-400 @enderror" id="pendidikan_minimum" name="pendidikan_minimum" @if($fullTime) required @endif>
+                            <option value="">Pilih pendidikan minimum</option>
+                            @foreach(config('lowongan.pendidikan') as $nilai => $label)
+                                <option value="{{ $nilai }}" @selected(old('pendidikan_minimum', $lowongan->pendidikan_minimum ?? '') === $nilai)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        @error('pendidikan_minimum')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div id="field-jurusan" @if(! $fullTime) hidden @endif>
+                        <label class="field-label" for="jurusan">Jurusan (opsional)</label>
+                        <input class="field @error('jurusan') !border-red-400 @enderror" id="jurusan" name="jurusan" maxlength="100" value="{{ old('jurusan', $lowongan->jurusan ?? '') }}" placeholder="Mis. Teknik Informatika">
+                        @error('jurusan')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
                 </div>
 
@@ -108,15 +127,60 @@
         <aside class="card h-fit p-7 lg:sticky lg:top-24">
             <h2 class="text-lg font-bold text-askarsa-ink">Panduan publikasi</h2>
             <p class="mt-4 text-sm text-slate-600">Tulis tanggung jawab, kompensasi, dan persyaratan secara jelas. Jangan mencantumkan data pribadi sensitif.</p>
-            <div class="mt-5 rounded-lg bg-askarsa-mint p-4 text-sm text-askarsa-ink">Freelance/Part Time menampilkan durasi proyek. Pilihan filter katalog mengikuti jenis lowongan, kategori pekerjaan, metode kerja, kecamatan, dan bayaran.</div>
+            <div class="mt-5 rounded-lg bg-askarsa-mint p-4 text-sm text-askarsa-ink">Freelance/Part Time memakai kategori pekerjaan dan durasi proyek. Full-Time memakai pendidikan minimum tanpa kategori pekerjaan dan durasi.</div>
             <p class="mt-5 text-sm text-slate-500">Setelah publikasi, kelola lowongan di Postingan Saya dan pelamar di Pelamar Masuk.</p>
         </aside>
     </form>
 </section>
 <script>
-document.getElementById('bayaran')?.addEventListener('input', function () {
-    const digits = this.value.replace(/\D/g, '');
-    this.value = digits ? Number(digits).toLocaleString('id-ID') : '';
-});
+(function () {
+    const kategori = document.getElementById('kategori');
+    const bayaran = document.getElementById('bayaran');
+    const labelBayaran = document.getElementById('label-bayaran');
+    const field = {
+        jenis: document.getElementById('field-jenis'),
+        durasi: document.getElementById('field-durasi'),
+        pendidikan: document.getElementById('field-pendidikan'),
+        jurusan: document.getElementById('field-jurusan'),
+    };
+    const input = {
+        jenis: document.getElementById('jenis'),
+        durasi: document.getElementById('durasi'),
+        pendidikan: document.getElementById('pendidikan_minimum'),
+        jurusan: document.getElementById('jurusan'),
+    };
+
+    function sinkronForm() {
+        const fullTime = kategori?.value === 'Full-Time';
+
+        field.jenis.hidden = fullTime;
+        field.durasi.hidden = fullTime;
+        field.pendidikan.hidden = !fullTime;
+        field.jurusan.hidden = !fullTime;
+
+        input.jenis.required = !fullTime;
+        input.durasi.required = !fullTime;
+        input.pendidikan.required = fullTime;
+
+        if (fullTime) {
+            input.jenis.value = '';
+            input.durasi.value = '';
+        } else {
+            input.pendidikan.value = '';
+            input.jurusan.value = '';
+        }
+
+        if (labelBayaran) {
+            labelBayaran.textContent = fullTime ? 'Gaji per bulan (Rp) *' : 'Bayaran proyek (Rp) *';
+        }
+    }
+
+    bayaran?.addEventListener('input', function () {
+        const digits = this.value.replace(/\D/g, '');
+        this.value = digits ? Number(digits).toLocaleString('id-ID') : '';
+    });
+    kategori?.addEventListener('change', sinkronForm);
+    sinkronForm();
+})();
 </script>
 @endsection

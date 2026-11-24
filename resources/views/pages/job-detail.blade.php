@@ -43,6 +43,13 @@
             <p class="mt-1 text-2xl font-black text-askarsa">{{ $job['salary'] }}</p>
             <p class="muted mt-4">Lokasi</p><p class="text-sm font-semibold">{{ $job['location'] }}</p>
             <p class="muted mt-4">Metode kerja</p><p class="text-sm font-semibold">{{ $job['mode'] }}</p>
+            @if(! empty($job['pendidikan_minimum']))
+                <p class="muted mt-4">Pendidikan minimum</p>
+                <p class="text-sm font-semibold">{{ $job['pendidikan_label'] ?? config('lowongan.pendidikan.'.$job['pendidikan_minimum'], $job['pendidikan_minimum']) }}</p>
+                @if(! empty($job['jurusan']))
+                    <p class="muted mt-4">Jurusan</p><p class="text-sm font-semibold">{{ $job['jurusan'] }}</p>
+                @endif
+            @endif
             @if(! empty($job['durasi']))
                 <p class="muted mt-4">Durasi proyek</p><p class="text-sm font-semibold">{{ $job['durasi'] }}</p>
             @endif

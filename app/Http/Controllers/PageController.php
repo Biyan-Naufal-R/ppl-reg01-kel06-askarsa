@@ -344,7 +344,7 @@ class PageController extends Controller
             'type' => $type,
             'filters' => $filters,
             'kecamatanList' => config('domisili.kecamatan'),
-            'kategoriList' => config('lowongan.kategori'),
+            'kategoriList' => collect(config('lowongan.kategori'))->only(['Freelance', 'Part Time'])->all(),
             'metodeList' => config('lowongan.metode'),
             'jenisList' => collect(config('lowongan.jenis'))->map(fn (array $info) => $info['label'])->all(),
         ]);

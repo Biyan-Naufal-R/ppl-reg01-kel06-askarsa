@@ -4,6 +4,13 @@ return [
     'kategori' => [
         'Freelance' => 'Freelance',
         'Part Time' => 'Part Time',
+        'Full-Time' => 'Full-Time',
+    ],
+
+    'pendidikan' => [
+        'sma' => 'SMA / SMK sederajat',
+        'd3' => 'D3',
+        's1' => 'S1',
     ],
 
     'metode' => [
@@ -15,6 +22,7 @@ return [
     'kategori_warna' => [
         'Freelance' => 'border-teal-200 bg-teal-50 text-teal-700',
         'Part Time' => 'border-orange-200 bg-orange-50 text-orange-700',
+        'Full-Time' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
     ],
 
     'metode_warna' => [

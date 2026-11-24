@@ -29,6 +29,8 @@ class Lowongan extends Model
         'kecamatan',
         'deskripsi',
         'persyaratan',
+        'pendidikan_minimum',
+        'jurusan',
         'durasi',
         'batas_lamaran',
         'gaji_min',
@@ -81,6 +83,7 @@ class Lowongan extends Model
         if ((int) $this->gaji_max !== (int) $this->gaji_min) {
             $rentang .= '–'.number_format($this->gaji_max, 0, ',', '.');
         }
+        $satuanGaji = $this->kategori === 'Full-Time' ? ' / bulan' : ' / proyek';
 
         return [
             'lowongan_id' => $this->id,
@@ -90,7 +93,7 @@ class Lowongan extends Model
             'type' => $this->kategori,
             'mode' => config('lowongan.metode.'.$this->metode, $this->metode),
             'location' => $this->kecamatan.', Banyumas',
-            'salary' => 'Rp'.$rentang.' / proyek',
+            'salary' => 'Rp'.$rentang.$satuanGaji,
             'kecamatan' => $this->kecamatan,
             'jenis' => $this->jenis,
             'metode' => $this->metode,
@@ -98,6 +101,11 @@ class Lowongan extends Model
             'gaji_max' => (int) $this->gaji_max,
             'deskripsi' => $this->deskripsi,
             'persyaratan' => $this->persyaratan,
+            'pendidikan_minimum' => $this->pendidikan_minimum,
+            'pendidikan_label' => $this->pendidikan_minimum
+                ? config('lowongan.pendidikan.'.$this->pendidikan_minimum, $this->pendidikan_minimum)
+                : null,
+            'jurusan' => $this->jurusan,
             'durasi' => $this->durasi,
             'batas_lamaran' => $this->batas_lamaran?->toDateString(),
             'status' => $this->status,

@@ -47,18 +47,22 @@ class LowonganController extends Controller
         $data = $request->validated();
         $gaji = (int) $data['bayaran'];
 
+        $fullTime = $data['kategori'] === 'Full-Time';
+
         Lowongan::create([
             'user_id' => $request->user()->id,
             'judul' => $data['judul'],
             'perusahaan' => $data['perusahaan'],
             'slug' => Lowongan::buatSlug($data['judul']),
             'kategori' => $data['kategori'],
-            'jenis' => $data['jenis'],
+            'jenis' => $fullTime ? '' : $data['jenis'],
             'metode' => $data['metode'],
             'kecamatan' => $data['kecamatan'],
             'deskripsi' => $data['deskripsi'],
             'persyaratan' => $data['persyaratan'],
-            'durasi' => $data['durasi'],
+            'pendidikan_minimum' => $fullTime ? $data['pendidikan_minimum'] : null,
+            'jurusan' => $fullTime ? ($data['jurusan'] ?? null) : null,
+            'durasi' => $fullTime ? '' : $data['durasi'],
             'batas_lamaran' => $data['batas_lamaran'],
             'gaji_min' => $gaji,
             'gaji_max' => $gaji,
@@ -81,16 +85,20 @@ class LowonganController extends Controller
         $data = $request->validated();
         $gaji = (int) $data['bayaran'];
 
+        $fullTime = $data['kategori'] === 'Full-Time';
+
         $lowongan->update([
             'judul' => $data['judul'],
             'perusahaan' => $data['perusahaan'],
             'kategori' => $data['kategori'],
-            'jenis' => $data['jenis'],
+            'jenis' => $fullTime ? '' : $data['jenis'],
             'metode' => $data['metode'],
             'kecamatan' => $data['kecamatan'],
             'deskripsi' => $data['deskripsi'],
             'persyaratan' => $data['persyaratan'],
-            'durasi' => $data['durasi'],
+            'pendidikan_minimum' => $fullTime ? $data['pendidikan_minimum'] : null,
+            'jurusan' => $fullTime ? ($data['jurusan'] ?? null) : null,
+            'durasi' => $fullTime ? '' : $data['durasi'],
             'batas_lamaran' => $data['batas_lamaran'],
             'gaji_min' => $gaji,
             'gaji_max' => $gaji,
