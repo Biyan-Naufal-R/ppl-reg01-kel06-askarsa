@@ -35,7 +35,11 @@
             Riwayat
         </a>
 
-        <a href="{{ route('dashboard.posts') }}" class="mt-3 {{ $is('dashboard.posts') ? $activeClass : $inactiveClass }}">
+        <a href="{{ route('dashboard.service-form') }}" class="mt-3 {{ $is('dashboard.service-form', 'dashboard.edit-profile') ? $activeClass : $inactiveClass }}">
+            @if($is('dashboard.service-form', 'dashboard.edit-profile'))<span class="size-2 rounded-full bg-askarsa-ink"></span>@endif
+            Profil Jasa Saya
+        </a>
+        <a href="{{ route('dashboard.posts') }}" class="{{ $is('dashboard.posts') ? $activeClass : $inactiveClass }}">
             @if($is('dashboard.posts'))<span class="size-2 rounded-full bg-askarsa-ink"></span>@endif
             Postingan Saya
         </a>

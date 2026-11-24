@@ -34,6 +34,7 @@ Route::middleware('auth')->prefix('aktivitas')->name('dashboard.')->group(functi
     Route::get('/profile', [AccountController::class, 'show'])->name('profile');
     Route::get('/edit-profile', [AccountController::class, 'edit'])->name('edit-profile');
     Route::put('/edit-profile', [AccountController::class, 'update'])->name('profile.update');
+    Route::get('/service-form', fn () => redirect()->route('dashboard.edit-profile'))->name('service-form');
 
     Route::get('/pesanan-jasa', [PesananController::class, 'pesananProses'])->name('pesanan.proses');
     Route::get('/pesanan-jasa/riwayat', [PesananController::class, 'pesananRiwayat'])->name('pesanan.riwayat');
@@ -44,5 +45,5 @@ Route::middleware('auth')->prefix('aktivitas')->name('dashboard.')->group(functi
     Route::get('/orders', fn () => redirect()->route('dashboard.pesanan.proses'))->name('orders');
     Route::get('/incoming', fn () => redirect()->route('dashboard.permintaan.proses'))->name('incoming');
 });
-Route::prefix('aktivitas')->name('dashboard.')->group(function(){foreach(['service-form'=>'Kelola Profil Jasa','posts'=>'Postingan Saya','applications'=>'Lamaran Saya','candidates'=>'Pelamar Masuk','reports'=>'Laporan Saya','create-job'=>'Buat Lowongan','apply'=>'Lamar Pekerjaan','book'=>'Pesan Jasa'] as $key=>$label) Route::get('/'.$key,fn()=>app(PageController::class)->dashboard($label))->name($key);});
+Route::prefix('aktivitas')->name('dashboard.')->group(function(){foreach(['posts'=>'Postingan Saya','applications'=>'Lamaran Saya','candidates'=>'Pelamar Masuk','reports'=>'Laporan Saya','create-job'=>'Buat Lowongan','apply'=>'Lamar Pekerjaan','book'=>'Pesan Jasa'] as $key=>$label) Route::get('/'.$key,fn()=>app(PageController::class)->dashboard($label))->name($key);});
 Route::prefix('admin')->name('admin.')->group(function(){foreach(['dashboard'=>'Dashboard Admin','reports'=>'Laporan & Moderasi','report-detail'=>'Detail Laporan','content'=>'Kelola Lowongan & Profil Jasa','users'=>'Kelola Akun','master'=>'Master Data'] as $key=>$label) Route::get('/'.$key,fn()=>app(PageController::class)->admin($label))->name($key);});

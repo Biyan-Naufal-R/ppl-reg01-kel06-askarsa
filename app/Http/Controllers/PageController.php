@@ -8,16 +8,29 @@ use Illuminate\Support\Str;
 
 class PageController extends Controller
 {
-    /** Katalog jasa minta tolong diambil dari profil jasa yang sedang aktif. */
-    private function serviceData(): array
+    /**
+     * Data kartu jasa. Secara default memasukkan seluruh profil aktif, termasuk
+     * yang sedang tidak tersedia, agar tetap muncul di katalog dengan label.
+     * Beranda memakai $hanyaTersedia = true sehingga hanya menampilkan yang siap menerima pesanan.
+     */
+    private function serviceData(bool $hanyaTersedia = false): array
     {
-        $profilJasa = ProfilJasa::tampilDiKatalog()->with('user')->latest()->get();
+        $query = ProfilJasa::tampilDiKatalog()
+            ->with('user')
+            ->orderByDesc('tersedia')
+            ->latest();
 
+        // Slug dihitung dari semua profil aktif agar tidak berubah saat status ketersediaan berubah.
+        $semuaProfil = $query->get();
         $slugCounts = [];
-        foreach ($profilJasa as $profil) {
+        foreach ($semuaProfil as $profil) {
             $base = Str::slug($profil->user?->name ?? 'penyedia');
             $slugCounts[$base] = ($slugCounts[$base] ?? 0) + 1;
         }
+
+        $profilJasa = $hanyaTersedia
+            ? (clone $query)->tersedia()->get()
+            : $semuaProfil;
 
         return $profilJasa->map(function (ProfilJasa $profil) use ($slugCounts) {
             $user = $profil->user;
@@ -39,11 +52,13 @@ class PageController extends Controller
                 'name' => $profil->nama_profil,
                 'district' => $user->domisili ?? '-',
                 'category' => $kategori,
+                'kategori' => array_values($profil->kategori ?? []),
                 'description' => $profil->deskripsi ?? '',
                 'price' => 'Rp'.number_format($profil->tarif, 0, ',', '.'),
                 'penyedia_id' => $profil->user_id,
                 'penyedia_email' => $user->email,
                 'tersedia' => (bool) $profil->tersedia,
+                'status_label' => $profil->tersedia ? 'Tersedia' : 'Tidak tersedia',
             ];
         })->values()->all();
     }
@@ -53,15 +68,15 @@ class PageController extends Controller
     ['slug'=>'staf-administrasi','company'=>'CV Satria Niaga','title'=>'Staf Administrasi','type'=>'Full-Time','mode'=>'On-site','location'=>'Purwokerto Selatan, Banyumas','salary'=>'Rp2.500.000–3.000.000 / bulan'],
     ['slug'=>'fotografer-produk-umkm','company'=>'Kedai Kopi Lereng','title'=>'Fotografer Produk UMKM','type'=>'Freelance','mode'=>'On-site','location'=>'Baturaden, Banyumas','salary'=>'Rp800.000 / proyek'],
     ['slug'=>'barista','company'=>'Kedai Kopi Lereng','title'=>'Barista','type'=>'Full-Time','mode'=>'On-site','location'=>'Baturaden, Banyumas','salary'=>'Rp2.300.000–2.800.000 / bulan']];}
-    public function home(){return view('pages.home',['services'=>$this->serviceData(),'jobs'=>$this->jobsData()]);}
+    public function home(){return view('pages.home',['services'=>$this->serviceData(true),'jobs'=>$this->jobsData()]);}
     public function services(){return view('pages.services',['services'=>$this->serviceData()]);}
     public function service($slug){
         $service=collect($this->serviceData())->firstWhere('slug',$slug);
 
         if (!$service) {
-            $profil = ProfilJasa::with('user')->where('aktif', true)->get()->first(function (ProfilJasa $profil) use ($slug) {
+            $profil = ProfilJasa::tampilDiKatalog()->with('user')->get()->first(function (ProfilJasa $profil) use ($slug) {
                 $base = Str::slug($profil->user?->name ?? 'penyedia');
-                $sameBaseCount = ProfilJasa::where('aktif', true)->whereHas('user', fn ($q) => $q->where('name', $profil->user?->name))->count();
+                $sameBaseCount = ProfilJasa::tampilDiKatalog()->whereHas('user', fn ($q) => $q->where('name', $profil->user?->name))->count();
                 $candidate = $sameBaseCount > 1 ? $base.'-'.$profil->user_id : $base;
                 return $candidate === $slug;
             });
@@ -73,11 +88,13 @@ class PageController extends Controller
                 'name' => $profil->nama_profil,
                 'district' => $user->domisili ?? '-',
                 'category' => collect($profil->kategori ?? [])->map(fn (string $nilai) => config('jasa.kategori.'.$nilai, $nilai))->implode(', '),
+                'kategori' => array_values($profil->kategori ?? []),
                 'description' => $profil->deskripsi ?? '',
                 'price' => 'Rp'.number_format($profil->tarif, 0, ',', '.'),
                 'penyedia_id' => $profil->user_id,
                 'penyedia_email' => $user->email,
                 'tersedia' => (bool) $profil->tersedia,
+                'status_label' => $profil->tersedia ? 'Tersedia' : 'Tidak tersedia',
             ];
         }
 

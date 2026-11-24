@@ -55,7 +55,7 @@
                 <div class="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-askarsa-mint/60 p-4">
                     <div>
                         <p class="text-sm font-bold text-askarsa-ink">Status profil jasa</p>
-                        <p class="mt-1 text-xs text-slate-500">Aktifkan jika Anda ingin menyalakan akun jasa minta tolong. Nonaktifkan untuk mematikannya.</p>
+                        <p class="mt-1 text-xs text-slate-500">Aktifkan agar profil tampil di katalog jasa. Nonaktifkan agar profil tidak muncul sama sekali.</p>
                     </div>
                     <label class="relative inline-flex shrink-0 cursor-pointer items-center gap-3">
                         <span class="text-xs font-semibold text-slate-500">{{ $jasaAktif ? 'Aktif' : 'Nonaktif' }}</span>
@@ -66,10 +66,10 @@
 
                 <div id="jasa-section" class="rounded-xl border border-slate-200 bg-askarsa-surface/70 p-5">
                     <h3 class="font-bold text-askarsa-ink">Profil Jasa Minta Tolong</h3>
-                    <p class="mt-1 text-xs text-slate-500">Profil jasa disimpan terpisah dari data akun. Ketersediaan hanya berlaku saat profil jasa aktif.</p>
+                    <p class="mt-1 text-xs text-slate-500">Profil jasa disimpan terpisah dari data akun. Saat aktif, profil tetap tampil di katalog meskipun sedang tidak tersedia.</p>
 
                     <div class="mt-5">
-                        <span class="field-label">Ketersediaan</span>
+                        <span class="field-label">Ketersediaan jasa</span>
                         <div class="flex flex-wrap gap-3">
                             <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm">
                                 <input type="radio" name="tersedia" value="1" @checked($jasaTersedia)>
@@ -81,7 +81,7 @@
                             </label>
                         </div>
                         @error('tersedia')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                        <p class="mt-2 text-xs text-slate-500">Menerima pesanan membuat profil tidak tersedia selama pekerjaan berlangsung; setelah selesai, profil kembali tersedia otomatis dan Anda tetap dapat mengaturnya kembali.</p>
+                        <p class="mt-2 text-xs text-slate-500">Pilih "Tidak tersedia" agar profil tetap tampil di katalog dengan label tersebut dan tidak bisa dipesan. Saat pesanan diterima, status berubah otomatis; setelah selesai, profil kembali tersedia dan dapat diatur lagi.</p>
                     </div>
 
                     <div class="mt-5 grid gap-5 sm:grid-cols-2">

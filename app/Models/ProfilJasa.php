@@ -45,9 +45,19 @@ class ProfilJasa extends Model
         return $query->where('aktif', true);
     }
 
-    /** Profil yang boleh tampil di katalog publik. */
+    /**
+     * Profil yang boleh tampil di katalog publik: yang aktif.
+     * Profil yang sedang tidak tersedia tetap tampil dengan label "Tidak tersedia";
+     * hanya profil nonaktif yang benar-benar disembunyikan.
+     */
     public function scopeTampilDiKatalog(Builder $query): Builder
     {
-        return $query->where('aktif', true)->where('tersedia', true);
+        return $query->where('aktif', true);
+    }
+
+    /** Profil yang sedang menerima pesanan (dipakai pada sorotan beranda). */
+    public function scopeTersedia(Builder $query): Builder
+    {
+        return $query->where('tersedia', true);
     }
 }

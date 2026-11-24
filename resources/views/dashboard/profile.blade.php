@@ -49,6 +49,32 @@
                 </div>
             </dl>
         </div>
+
+        @if ($user->profilJasa)
+            <div class="card mt-6">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <p class="eyebrow">Profil jasa saya</p>
+                        <h2 class="mt-1 text-xl font-bold">{{ $user->profilJasa->nama_profil }}</h2>
+                    </div>
+                    <a class="text-sm font-semibold text-askarsa hover:underline" href="{{ route('dashboard.edit-profile') }}">Kelola profil jasa →</a>
+                </div>
+                <dl class="mt-5 grid gap-5 sm:grid-cols-3">
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Status profil</dt>
+                        <dd class="mt-1 font-medium">{{ $user->profilJasa->aktif ? 'Aktif' : 'Nonaktif (tidak muncul di katalog)' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Ketersediaan</dt>
+                        <dd class="mt-1 font-medium {{ $user->profilJasa->tersedia ? 'text-askarsa' : 'text-askarsa-danger' }}">{{ $user->profilJasa->tersedia ? 'Tersedia' : 'Tidak tersedia' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Kategori bantuan</dt>
+                        <dd class="mt-1 font-medium">{{ collect($user->profilJasa->kategori ?? [])->map(fn (string $kategori) => config('jasa.kategori.'.$kategori, $kategori))->implode(', ') ?: '-' }}</dd>
+                    </div>
+                </dl>
+            </div>
+        @endif
     </div>
 </section>
 @endsection

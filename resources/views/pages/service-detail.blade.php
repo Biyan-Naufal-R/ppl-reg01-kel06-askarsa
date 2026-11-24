@@ -3,16 +3,25 @@
 @section('title', $service['name'].' — ASKARSA')
 
 @section('content')
+@php
+    $tersedia = (bool) ($service['tersedia'] ?? true);
+    $labelStatus = $service['status_label'] ?? ($tersedia ? 'Tersedia' : 'Tidak tersedia');
+@endphp
 <section class="container-app py-10">
     <p class="text-xs text-slate-500">Beranda / Jasa Minta Tolong / {{ $service['name'] }}</p>
 
     <div class="mt-6 grid gap-6 lg:grid-cols-[1fr_300px]">
         <article class="card">
-            <span class="pill">{{ $service['tersedia'] ?? true ? 'Tersedia' : 'Tidak tersedia' }}</span>
+            <span class="pill {{ $tersedia ? '' : 'pill-tidak-tersedia' }}">{{ $labelStatus }}</span>
+            @unless($tersedia)
+                <p class="mt-2 text-xs text-askarsa-danger">Profil ini tetap tampil di katalog, tetapi sedang tidak menerima pesanan.</p>
+            @endunless
             <h1 class="mt-3 text-3xl font-black">{{ $service['name'] }}</h1>
             <p class="muted">{{ $service['district'] }}, Kabupaten Banyumas</p>
             <hr class="my-6">
-            <p class="eyebrow">{{ $service['category'] }}</p>
+            <div class="flex flex-wrap gap-2">
+                @include('components.category-badges', ['kategori' => $service['kategori'] ?? []])
+            </div>
             <h2 class="mt-2 text-2xl font-bold">Bantuan harian tanpa repot.</h2>
             <p class="mt-4 text-slate-600">{{ $service['description'] ?: 'Penyedia belum menambahkan deskripsi.' }}</p>
             <h3 class="mt-6 font-bold">Layanan yang dapat dibantu</h3>

@@ -305,7 +305,10 @@ class ProfileTest extends TestCase
         $this->get(route('services.index'))
             ->assertOk()
             ->assertSee('Joanna Siap Bantu')
-            ->assertSee('Temani, Titip Beli')
+            ->assertSee('Temani')
+            ->assertSee('Titip Beli')
+            ->assertSee('border-violet-200 bg-violet-50 text-violet-700', false)
+            ->assertSee('border-rose-200 bg-rose-50 text-rose-700', false)
             ->assertSee('Bisa bantu urusan harian.')
             ->assertSee('Purwokerto Utara')
             ->assertSee('Rp25.000')
@@ -391,5 +394,120 @@ class ProfileTest extends TestCase
         $this->assertFalse($profil->tersedia);
         $this->assertSame('Joanna Siap Bantu', $profil->nama_profil);
         $this->assertDatabaseCount('profil_jasa', 1);
+    }
+
+    public function test_profil_aktif_tidak_tersedia_tetap_muncul_di_katalog_dengan_label(): void
+    {
+        $penyedia = User::factory()->create([
+            'name' => 'Raniangsih Nugraha',
+            'domisili' => 'Sokaraja',
+        ]);
+        ProfilJasa::factory()->tidakTersedia()->create([
+            'user_id' => $penyedia->id,
+            'nama_profil' => 'Rani Siap Bantu',
+            'tarif' => 20000,
+            'kategori' => ['temani'],
+            'deskripsi' => 'Sedang tidak menerima pesanan.',
+        ]);
+
+        $slug = 'raniangsih-nugraha';
+
+        $this->get(route('services.index'))
+            ->assertOk()
+            ->assertSee('Rani Siap Bantu')
+            ->assertSee('<span class="pill pill-tidak-tersedia">Tidak tersedia</span>', false)
+            ->assertDontSee('Ketersediaan:', false)
+            ->assertSee(route('services.show', $slug), false);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertDontSee('Rani Siap Bantu');
+
+        $this->get(route('dashboard.service-form'))->assertRedirect(route('login'));
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('services.show', $slug))
+            ->assertOk()
+            ->assertSee('Rani Siap Bantu')
+            ->assertSee('Tidak tersedia')
+            ->assertSee('Penyedia sedang tidak tersedia. Silakan cek kembali nanti.');
+
+        $this->actingAs($penyedia)
+            ->get(route('dashboard.service-form'))
+            ->assertRedirect(route('dashboard.edit-profile'));
+    }
+
+    public function test_profil_nonaktif_tetap_hilang_dari_katalog(): void
+    {
+        $user = User::factory()->create(['name' => 'Darma Nonaktif']);
+        ProfilJasa::factory()->nonaktif()->create([
+            'user_id' => $user->id,
+            'nama_profil' => 'Darma Siap Bantu',
+            'tarif' => 15000,
+            'kategori' => ['temani'],
+        ]);
+
+        $this->get(route('services.index'))
+            ->assertOk()
+            ->assertDontSee('Darma Siap Bantu');
+
+        $this->get(route('services.show', 'darma-nonaktif'))->assertNotFound();
+    }
+
+    public function test_halaman_profil_menampilkan_ringkasan_status_jasa(): void
+    {
+        $user = User::factory()->create();
+        ProfilJasa::factory()->tidakTersedia()->create([
+            'user_id' => $user->id,
+            'nama_profil' => 'Jasa Ayu',
+            'tarif' => 25000,
+            'kategori' => ['titip-beli'],
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('dashboard.profile'))
+            ->assertOk()
+            ->assertSee('Profil jasa saya')
+            ->assertSee('Jasa Ayu')
+            ->assertSee('Status profil')
+            ->assertSee('Aktif')
+            ->assertSee('Tidak tersedia')
+            ->assertSee('Titip Beli');
+    }
+
+    public function test_semua_kategori_tampil_sebagai_chip_berwarna_di_katalog_dan_detail(): void
+    {
+        $kategori = array_keys(config('jasa.kategori'));
+        $warna = [
+            'antar-jemput' => 'border-sky-200 bg-sky-50 text-sky-700',
+            'temani' => 'border-violet-200 bg-violet-50 text-violet-700',
+            'titip-beli' => 'border-rose-200 bg-rose-50 text-rose-700',
+            'bantuan-rumah' => 'border-cyan-200 bg-cyan-50 text-cyan-700',
+            'antar-barang' => 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-700',
+            'perbaikan' => 'border-indigo-200 bg-indigo-50 text-indigo-700',
+        ];
+
+        $user = User::factory()->create(['name' => 'Lengkap Penyedia']);
+        ProfilJasa::factory()->create([
+            'user_id' => $user->id,
+            'nama_profil' => 'Lengkap Siap Bantu',
+            'tarif' => 25000,
+            'kategori' => $kategori,
+        ]);
+
+        $katalog = $this->get(route('services.index'))
+            ->assertOk()
+            ->assertSee('Lengkap Siap Bantu');
+
+        $detail = $this->get(route('services.show', 'lengkap-penyedia'))
+            ->assertOk()
+            ->assertSee('Lengkap Siap Bantu');
+
+        foreach (config('jasa.kategori') as $nilai => $label) {
+            $katalog->assertSee($label);
+            $detail->assertSee($label);
+            $katalog->assertSee($warna[$nilai], false);
+            $detail->assertSee($warna[$nilai], false);
+        }
     }
 }

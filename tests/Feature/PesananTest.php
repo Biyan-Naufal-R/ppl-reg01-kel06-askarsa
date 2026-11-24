@@ -358,4 +358,14 @@ class PesananTest extends TestCase
             ->assertSee('Ini jasa milik Anda sendiri.')
             ->assertDontSee('name="penyedia_id"', false);
     }
+
+    public function test_form_pesan_jasa_tidak_bisa_dibuka_pada_penyedia_yang_tidak_tersedia(): void
+    {
+        $penyedia = User::factory()->create(['name' => 'Bima Saputra']);
+        ProfilJasa::factory()->tidakTersedia()->create(['user_id' => $penyedia->id]);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('pesanan.create', 'bima-saputra'))
+            ->assertNotFound();
+    }
 }
