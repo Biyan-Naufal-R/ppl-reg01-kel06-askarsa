@@ -1,10 +1,18 @@
 <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
     <div class="container-app flex h-16 items-center justify-between">
-        <a href="{{ route('home') }}" class="text-xl font-black tracking-tight text-askarsa">
-            ASKARSA<span class="text-askarsa-gold">.</span>
-        </a>
+        <div class="flex items-center gap-3">
+            @auth
+                <button type="button" data-sidebar-toggle aria-controls="activity-sidebar" aria-expanded="true" aria-label="Tampilkan/sembunyikan sidebar" class="inline-flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100">
+                    <svg class="size-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
+                </button>
+            @endauth
+            <a href="{{ route('home') }}" class="text-xl font-black tracking-tight text-askarsa">
+                ASKARSA<span class="text-askarsa-gold">.</span>
+            </a>
+        </div>
 
         <nav class="hidden items-center gap-8 text-sm font-medium md:flex">
+            <a href="{{ route('home') }}">Beranda</a>
             <a href="{{ route('services.index') }}">Jasa Minta Tolong</a>
             <a href="{{ route('jobs.freelance') }}">Freelance</a>
             <a href="{{ route('jobs.fulltime') }}">Full-Time</a>
@@ -55,6 +63,7 @@
     </div>
 
     <nav id="mobile-menu" class="container-app hidden space-y-3 pb-4 text-sm md:hidden">
+        <a class="block" href="{{ route('home') }}">Beranda</a>
         <a class="block" href="{{ route('services.index') }}">Jasa Minta Tolong</a>
         <a class="block" href="{{ route('jobs.freelance') }}">Freelance</a>
         <a class="block" href="{{ route('jobs.fulltime') }}">Full-Time</a>

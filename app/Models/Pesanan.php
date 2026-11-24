@@ -21,6 +21,17 @@ class Pesanan extends Model
     protected $fillable = [
         'pelanggan_id',
         'penyedia_id',
+        'nama_pemesan',
+        'email_pemesan',
+        'nomor_telepon',
+        'domisili_pemesan',
+        'alamat_lengkap',
+        'titik_ambil',
+        'titik_antar',
+        'tanggal_mulai',
+        'perkiraan_durasi',
+        'jenis_bantuan',
+        'catatan_tambahan',
         'judul',
         'deskripsi',
         'harga',
@@ -34,6 +45,8 @@ class Pesanan extends Model
         return [
             'harga' => 'integer',
             'selesai_pada' => 'datetime',
+            'tanggal_mulai' => 'date',
+            'jenis_bantuan' => 'array',
         ];
     }
 

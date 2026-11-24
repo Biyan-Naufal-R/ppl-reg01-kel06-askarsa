@@ -36,8 +36,7 @@
                     <p class="mt-6 rounded-lg bg-askarsa-mint p-3 text-sm text-askarsa-ink">Ini jasa milik Anda sendiri.</p>
                     <button class="btn-primary mt-3 w-full opacity-50" type="button" disabled>Pesan Jasa</button>
                 @elseif (auth()->user()->punyaJasaAktif())
-                    <p class="mt-6 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Nonaktifkan profil jasa Anda terlebih dahulu untuk memesan jasa orang lain.</p>
-                    <a href="{{ route('dashboard.edit-profile') }}" class="mt-3 block text-center text-sm font-semibold text-askarsa hover:underline">Atur profil jasa</a>
+                    <p class="mt-6 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Untuk memesan jasa orang lain, nonaktifkan terlebih dahulu profil jasa Anda melalui halaman Edit Profil / Akun.</p>
                     <button class="btn-primary mt-3 w-full opacity-50" type="button" disabled>Pesan Jasa</button>
                 @elseif (! $penyedia?->profilJasa?->aktif)
                     <p class="mt-6 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">Penyedia jasa ini belum aktif.</p>
@@ -46,18 +45,9 @@
                     <p class="mt-6 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Penyedia sedang tidak tersedia. Silakan cek kembali nanti.</p>
                     <button class="btn-primary mt-3 w-full opacity-50" type="button" disabled>Pesan Jasa</button>
                 @else
-                    <form class="mt-6 space-y-4" method="POST" action="{{ route('pesanan.store') }}">
-                        @csrf
-                        <input name="penyedia_id" type="hidden" value="{{ $penyedia->id }}">
-                        <div>
-                            <label class="field-label" for="deskripsi">Catatan pesanan</label>
-                            <textarea class="field" id="deskripsi" name="deskripsi" rows="3" maxlength="1000" placeholder="Ceritakan kebutuhan Anda…">{{ old('deskripsi') }}</textarea>
-                            @error('deskripsi')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                        </div>
-                        @error('jasa')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
-                        @error('penyedia_id')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
-                        <button class="btn-primary w-full" type="submit">Pesan Jasa</button>
-                    </form>
+                    <p class="mt-6 text-sm text-slate-600">Isi form pemesanan untuk menjelaskan kebutuhan Anda secara lengkap.</p>
+                    @error('jasa')<p class="mt-2 text-sm text-red-600">{{ $message }}</p>@enderror
+                    <a href="{{ route('pesanan.create', $service['slug']) }}" class="btn-primary mt-4 w-full">Pesan Jasa</a>
                 @endif
 
                 <a href="{{ route('dashboard.reports') }}" class="btn-secondary mt-3 w-full">Laporkan Profil</a>

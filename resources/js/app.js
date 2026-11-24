@@ -1,5 +1,33 @@
 import './bootstrap';
 
+const initSidebar = () => {
+ const sidebar = document.getElementById('activity-sidebar');
+ const toggles = document.querySelectorAll('[data-sidebar-toggle]');
+ if (!sidebar || !toggles.length) return;
+ const key = 'askarsa.sidebar.open';
+ const desktop = () => window.matchMedia('(min-width: 1024px)').matches;
+ const apply = (open) => {
+  if (desktop()) {
+   sidebar.classList.toggle('lg:block', open);
+   sidebar.classList.toggle('lg:hidden', !open);
+   sidebar.classList.remove('fixed', 'inset-y-0', 'left-0', 'z-40', 'hidden');
+  } else {
+   sidebar.classList.toggle('hidden', !open);
+   sidebar.classList.toggle('fixed', open);
+   sidebar.classList.toggle('inset-y-0', open);
+   sidebar.classList.toggle('left-0', open);
+   sidebar.classList.toggle('z-40', open);
+   if (open) sidebar.classList.remove('lg:block', 'lg:hidden');
+  }
+  toggles.forEach(t => t.setAttribute('aria-expanded', String(open)));
+ };
+ let open = localStorage.getItem(key);
+ open = open === null ? true : open === 'true';
+ apply(open);
+ toggles.forEach(t => t.addEventListener('click', () => { open = !open; localStorage.setItem(key, String(open)); apply(open); }));
+ window.addEventListener('resize', () => apply(open));
+};
+
 document.addEventListener('click', e => {
  const target = e.target;
  const menuToggle = target.closest('[data-menu-toggle]');
@@ -45,5 +73,5 @@ document.addEventListener('keydown', e => {
  }
 });
 
-const statusToast = document.getElementById('status-toast');
-if (statusToast) window.setTimeout(() => statusToast.remove(), 5000);
+initSidebar();
+document.querySelectorAll('#status-toast').forEach(t => window.setTimeout(() => t.remove(), 5000));
