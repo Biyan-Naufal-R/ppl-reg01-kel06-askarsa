@@ -308,10 +308,11 @@ class PesananController extends Controller
                 ->exists();
             if (! $masihAdaProses) {
                 // Kunci profil sebelum menulis ulang status ketersediaannya.
-                $request->user()->profilJasa()
-                    ->lockForUpdate()
-                    ->first()
-                    ?->update(['tersedia' => true]);
+                // Profil yang dinonaktifkan tidak boleh otomatis tersedia lagi.
+                $profil = $request->user()->profilJasa()->lockForUpdate()->first();
+                if ($profil && $profil->aktif) {
+                    $profil->update(['tersedia' => true]);
+                }
             }
         });
 

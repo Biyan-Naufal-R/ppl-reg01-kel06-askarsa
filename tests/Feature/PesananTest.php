@@ -305,6 +305,22 @@ class PesananTest extends TestCase
         $this->assertTrue($pesanan->penyedia->fresh()->profilJasa->tersedia);
     }
 
+    public function test_selesai_tidak_mengembalikan_ketersediaan_jika_profil_nonaktif(): void
+    {
+        $pesanan = Pesanan::factory()->diproses()->create();
+        ProfilJasa::factory()->nonaktif()->create([
+            'user_id' => $pesanan->penyedia_id,
+            'tersedia' => false,
+        ]);
+
+        $this->actingAs($pesanan->penyedia)
+            ->post(route('pesanan.selesaikan', $pesanan), ['catatan_penyelesaian' => 'done'])
+            ->assertRedirect(route('dashboard.permintaan.riwayat'));
+
+        $this->assertSame(Pesanan::STATUS_SELESAI, $pesanan->fresh()->status);
+        $this->assertFalse($pesanan->penyedia->fresh()->profilJasa->tersedia);
+    }
+
     public function test_pelanggan_bisa_batalkan_hanya_saat_menunggu(): void
     {
         $pesanan = Pesanan::factory()->create(['status' => Pesanan::STATUS_MENUNGGU]);
