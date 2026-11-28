@@ -65,6 +65,11 @@ class User extends Authenticatable
         return $this->hasMany(Lamaran::class);
     }
 
+    public function laporans(): HasMany
+    {
+        return $this->hasMany(Laporan::class, 'pelapor_id');
+    }
+
     /** Apakah akun ini sedang berstatus sebagai penyedia jasa aktif? */
     public function punyaJasaAktif(): bool
     {

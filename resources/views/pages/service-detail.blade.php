@@ -59,7 +59,11 @@
                     <a href="{{ route('pesanan.create', $service['slug']) }}" class="btn-primary mt-4 w-full">Pesan Jasa</a>
                 @endif
 
-                <a href="{{ route('dashboard.reports') }}" class="btn-secondary mt-3 w-full">Laporkan Profil</a>
+                @if ($penyedia?->profilJasa && (int) $penyedia->profilJasa->user_id === (int) auth()->id())
+                    <button class="btn-secondary mt-3 w-full cursor-not-allowed opacity-60" type="button" disabled>Laporkan Profil</button>
+                @elseif ($penyedia?->profilJasa)
+                    <a href="{{ route('laporan.create.profil-jasa', $penyedia->profilJasa) }}" class="btn-secondary mt-3 w-full">Laporkan Profil</a>
+                @endif
             @endguest
 
             <p class="mt-4 text-xs text-slate-500">@guest Login diperlukan untuk memesan atau melaporkan profil.@endguest</p>
