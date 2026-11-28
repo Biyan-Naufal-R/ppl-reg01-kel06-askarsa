@@ -76,7 +76,18 @@
             @else
                 <a href="{{ route('login') }}" class="btn-primary mt-6 w-full">Lamar Sekarang</a>
             @endif
-            <a href="{{ route('login') }}" class="btn-secondary mt-3 w-full">Laporkan Lowongan</a>
+            @auth
+                @if ($lowongan && (int) $lowongan->user_id === (int) auth()->id())
+                    <button class="btn-secondary mt-3 w-full cursor-not-allowed opacity-60" type="button" disabled>Laporkan Lowongan</button>
+                @elseif ($lowongan)
+                    <a href="{{ route('laporan.create.lowongan', $lowongan) }}" class="btn-secondary mt-3 w-full">Laporkan Lowongan</a>
+                @else
+                    <button class="btn-secondary mt-3 w-full cursor-not-allowed opacity-60" type="button" disabled>Laporkan Lowongan</button>
+                    <p class="mt-1 text-xs text-slate-500">Laporan hanya tersedia untuk lowongan terdaftar.</p>
+                @endif
+            @else
+                <a href="{{ route('login') }}" class="btn-secondary mt-3 w-full">Laporkan Lowongan</a>
+            @endauth
         </aside>
     </div>
 </section>

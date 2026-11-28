@@ -5,6 +5,7 @@ use App\Http\Controllers\PageController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\LamaranController;
 use App\Http\Controllers\LowonganController;
+use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use Illuminate\Support\Facades\Route;
@@ -35,6 +36,12 @@ Route::middleware('auth')->group(function(){
     Route::post('/lamaran/{lamaran}/terima',[LamaranController::class,'terima'])->name('lamaran.terima');
     Route::post('/lamaran/{lamaran}/tolak',[LamaranController::class,'tolak'])->name('lamaran.tolak');
 });
+Route::middleware('auth')->prefix('laporan')->name('laporan.')->group(function(){
+    Route::get('/profil-jasa/{profilJasa}',[LaporanController::class,'createProfilJasa'])->name('create.profil-jasa');
+    Route::get('/lowongan/{lowongan}',[LaporanController::class,'createLowongan'])->name('create.lowongan');
+    Route::post('/',[LaporanController::class,'store'])->name('store');
+    Route::get('/{laporan}/bukti',[LaporanController::class,'unduhBukti'])->name('bukti');
+});
 Route::get('/login',fn()=>app(PageController::class)->auth('login'))->name('login');
 Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->middleware('auth')->name('logout');
@@ -42,6 +49,7 @@ Route::get('/daftar',fn()=>app(PageController::class)->auth('register'))->name('
 Route::post('/daftar', [RegisteredUserController::class, 'store'])->name('register.store');
 Route::middleware('auth')->prefix('aktivitas')->name('dashboard.')->group(function () {
     Route::get('/profile', [AccountController::class, 'show'])->name('profile');
+    Route::get('/laporan', [LaporanController::class, 'index'])->name('reports');
     Route::get('/edit-profile', [AccountController::class, 'edit'])->name('edit-profile');
     Route::put('/edit-profile', [AccountController::class, 'update'])->name('profile.update');
     Route::get('/service-form', fn () => redirect()->route('dashboard.edit-profile'))->name('service-form');
@@ -66,5 +74,5 @@ Route::middleware('auth')->prefix('aktivitas')->name('dashboard.')->group(functi
     Route::get('/orders', fn () => redirect()->route('dashboard.pesanan.proses'))->name('orders');
     Route::get('/incoming', fn () => redirect()->route('dashboard.permintaan.proses'))->name('incoming');
 });
-Route::prefix('aktivitas')->name('dashboard.')->group(function(){foreach(['reports'=>'Laporan Saya','apply'=>'Lamar Pekerjaan','book'=>'Pesan Jasa'] as $key=>$label) Route::get('/'.$key,fn()=>app(PageController::class)->dashboard($label))->name($key);});
+Route::prefix('aktivitas')->name('dashboard.')->group(function(){foreach(['apply'=>'Lamar Pekerjaan','book'=>'Pesan Jasa'] as $key=>$label) Route::get('/'.$key,fn()=>app(PageController::class)->dashboard($label))->name($key);});
 Route::prefix('admin')->name('admin.')->group(function(){foreach(['dashboard'=>'Dashboard Admin','reports'=>'Laporan & Moderasi','report-detail'=>'Detail Laporan','content'=>'Kelola Lowongan & Profil Jasa','users'=>'Kelola Akun','master'=>'Master Data'] as $key=>$label) Route::get('/'.$key,fn()=>app(PageController::class)->admin($label))->name($key);});
